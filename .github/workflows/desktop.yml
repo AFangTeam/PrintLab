@@ -1,0 +1,67 @@
+name: Desktop VM verification
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            python: '3.11'
+            interpreter: Runtime/venv/Scripts/python.exe
+          - os: windows-2025
+            python: '3.13'
+            interpreter: Runtime/venv/Scripts/python.exe
+          - os: macos-latest
+            python: '3.13'
+            interpreter: Runtime/venv/bin/python
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      PYTHONUTF8: '1'
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install through documented entry point
+        run: |
+          $env:PRINTLAB_PYTHON = (Get-Command python).Source
+          if ($IsWindows) { & ./scripts/setup.ps1 } else { & bash scripts/setup.sh }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Run tests and independent-process onboarding
+        run: |
+          & './${{ matrix.interpreter }}' -m pytest Harness/tests -q -rs --junitxml=Runtime/verification/pytest.xml
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & './${{ matrix.interpreter }}' scripts/verify_onboarding.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test Harness/tests/native-inspection.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Install isolated browser test dependencies
+        run: |
+          & './${{ matrix.interpreter }}' -m pip install playwright
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & './${{ matrix.interpreter }}' -m playwright install chromium
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify actual server and browser
+        run: |
+          & './${{ matrix.interpreter }}' scripts/verify_browser.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: desktop-${{ matrix.os }}-python-${{ matrix.python }}
+          path: Runtime/verification/
