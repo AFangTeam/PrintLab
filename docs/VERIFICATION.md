@@ -1,5 +1,22 @@
 # 验证记录
 
+## v0.3.0 候选：尚未完成最终验收
+
+本节记录候选分支，不表示 v0.3.0 已发布。以下旧版记录仅适用于各自列出的提交；使用最新版时优先查本节和 [复刻审查](REPRODUCIBILITY_AUDIT.md)。
+
+| 范围 | 已取得的证据 | 仍需核验 |
+| --- | --- | --- |
+| 干净安装与独立 CAD | `f0f8d87` 在 macOS、Windows Server 2022/2025 完成 ZIP 安装、真实 Text-to-CAD 建模与 STEP/STL 导出 | 最新候选仍待完整回归；宿主插件、CAD 查看器未验收 |
+| 待打印按钮 | 本机真实 Chromium 完成检查、清板确认、提交和刷新后不重复发送；`d3ac171` 的 Mac、Windows Server 2025 浏览器步骤通过 | 设备和桌面发送边界为模拟；不证明真实设备启动。Windows 提供官方 Studio 手动交接 |
+| Bambuddy 独立安装 | 本机及云端完成独立服务安装和六个真实只读 API 检查 | Windows Server 2022 清理时文件占用，修复进程树退出后仍待 Windows 回归 |
+| 官方 Studio | 本机独立下载固定版、校验 SHA-256、真实切片并通过公开文件检查 | Windows 最新候选待运行；GUI 登录、网络、桌面权限和设备现场检查未覆盖 |
+
+[已通过的三平台基线](https://github.com/AFangTeam/PrintLab/actions/runs/43092718752) · [发现 Windows 清理问题的运行](https://github.com/AFangTeam/PrintLab/actions/runs/43094517244) · [候选 PR](https://github.com/AFangTeam/PrintLab/pull/2)
+
+本次观测到 GitHub 报告下载返回 502、报告上传返回 HTML，以及后续候选长期排队。不能将这些状态写成测试通过，也没有据此认定 GitHub 官方宣布了服务事故。最新结果以 PR 检查记录为准。
+
+云端 Windows 是 Server 虚拟机，不能替代 Windows 10/11 桌面验证。所有测试生成的几何仅用于验收，不作为模型资源分享。测试没有联系真实打印机，也没有启动实体打印。
+
 ## v0.2.0 Windows 与 Mac
 
 2026-11-11 在 GitHub 托管 Windows 虚拟机完成独立安装与验收，源码提交 `b5a87c3`。Windows Server 2022 使用 Python 3.11.9，Windows Server 2025 使用 Python 3.13.17，Node.js 22。两台机器各自完成以下检查。
