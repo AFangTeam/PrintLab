@@ -81,3 +81,14 @@ def test_windows_documented_launchers():
     finally:
         subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'], capture_output=True)
         process.wait(timeout=15)
+
+
+def test_windows_sender_has_explicit_manual_route():
+    import pytest
+    from printlab import studio_bridge
+
+    if sys.platform != 'win32':
+        pytest.skip('Windows official Studio handoff')
+    assert studio_bridge.capability()['setup_supported'] is False
+    with pytest.raises(core.WorkflowError, match='macOS'):
+        studio_bridge.build_helper()

@@ -58,6 +58,8 @@ def _build_manifest_path():
 
 def build_helper():
     """Build and install a dedicated local app; never requests privacy permission."""
+    if sys.platform != "darwin":
+        raise core.WorkflowError("发送助手构建需要 macOS。Windows 使用 docs/WINDOWS.md 中的官方 Studio 流程。")
     source = core.ROOT / 'Harness/macos/StudioBridge.swift'
     build_root = core.ROOT / 'Runtime/macos-build'
     build_root.mkdir(parents=True, exist_ok=True)
