@@ -4,7 +4,7 @@
 
 ## 首次安装
 
-读 `docs/SETUP.md`、`docs/DEPENDENCIES.md` 和 `docs/PRINTING.md`。使用 `bash scripts/setup.sh` 安装工作台和初始化本机资料，第三方工具交由使用者从原项目独立安装。安装前先读取原项目当前说明，明确下载内容和许可证。安装程序会从 PyPI/npm 获取工作台的软件依赖。
+先读 `docs/AGENT_START.md`，按其中步骤完成接手、安装、验证与角色建立。具体安装见 `docs/SETUP.md`，第三方来源见 `docs/DEPENDENCIES.md`，设备适配见 `docs/PRINTING.md`。Agent 在使用者授权范围内从原作者渠道独立下载和安装第三方工具，记录版本与验证结果。安装程序会从 PyPI/npm 获取工作台的软件依赖。
 
 工作空间根目录为当前 checkout。CLI 是 `./Harness/bin/printlab`，每次用当前 `--help` 确认参数。已有模型、工具环境和用户配置优先接续。
 
@@ -18,6 +18,8 @@
 ## 分工与持久化
 
 Sara 负责设备、材料、故障和配件。Mike 负责工作台、工具和流程。任务小组负责具体作品。提示词见 `docs/ROLES.md`。角色通过共同文件和命令协作，模型选择由用户当前可用的 Codex 环境决定。只有用户明确要求时才创建新会话或派发子 Agent。
+
+初始化生成 `Context/team.md`，记录实际工作空间、角色聊天入口与建立状态。每个新项目生成 `Review/team.md`，明确当前统筹与协作任务，`printlab context 项目ID` 会一起载入。使用者明确要求建立 Sara、Mike 和任务小组聊天时，使用当前宿主可用的聊天工具创建并读回结果。宿主的聊天管理能力缺失时，提供可复制的提示词和工作空间路径，标记待用户建立。
 
 - `Context/` 存流程、偏好和经验，偏好依据用户明确反馈。
 - `Project/` 存需求、源模型、候选、正式版本、切片、回执和实物复盘。

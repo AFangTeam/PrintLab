@@ -1,6 +1,6 @@
 # 已有模型改装与风格化记录
 
-非改装项目标不适用。执行 Context/image-to-print.md v3；默认建模GPT-6.1 Terra。保留原件，未验证项不写成功。
+非改装项目标不适用。执行 Context/image-to-print.md，建模模型按本机 Context/agent-policy.json 选择。保留原件，未验证项不写成功。
 
 - 原作者、模型名、来源URL、获取日期与版本：
 - 原件路径、格式及SHA256：

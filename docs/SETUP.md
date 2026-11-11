@@ -19,6 +19,8 @@ Python 版本不够时，安装 Python 3.11 或更新版，用绝对路径运行
 
 ## 让 Codex 接手
 
+观众的日常操作见 [交互指南](GETTING_STARTED.md)，Agent 的执行步骤及完成标准见 [Agent 接手指南](AGENT_START.md)。
+
 在 Codex 打开本仓库，使用 README 中的接手提示词。首次补充 `Context/profile.md` 中的用途和偏好，选择当前可用的 Codex 模型。模型偏好写入 `Context/agent-policy.json`。角色提示词见 `ROLES.md`。
 
 创建空项目的示例命令如下。
@@ -35,6 +37,8 @@ Python 版本不够时，安装 Python 3.11 或更新版，用绝对路径运行
 3. 编辑 `Runtime/config.json`，填写 `bambuddy_url` 和 `printer_id`。默认 URL 是 `http://127.0.0.1:8017`，应按自己实际安装的地址调整。
 4. 更新 `Library/Devices/X2D/device.json`，核实型号、喷嘴、板型、AMS/外挂以及 FTS 情况。该目录沿用首版 X2D 的设备卡路径，填写内容必须对应自己的机器。
 5. 运行 `./Harness/bin/printlab status` 和 `./Harness/bin/printlab materials`，确认设备身份、实时状态和材料映射。把核验结果写入 `Library/Devices/X2D/installed.md`。
+
+以上下载、安装、配置检查和故障修复可以由具备本机终端能力的 Agent 执行。登录、密钥授权、macOS 权限选择和实体装料由使用者在实际界面或设备上完成，再让 Agent 读取结果继续。
 
 API key 只保存在本机受限文件中，填写时不要把真实 key 粘进公开 issue 或运行日志。PrintLab 通过 HTTP API 访问独立运行的 Bambuddy，相关数据由使用者本机管理。
 

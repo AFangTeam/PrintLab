@@ -1,26 +1,33 @@
-# 首版验证记录
+# 验证记录
 
-验证日期为 2026-11-11。发布源码在独立目录安装和运行，环境为 Apple Silicon Mac、Python 3.13、Node.js 22.23.2。
+v0.1.2 验证日期为 2026-11-11。验收使用同一台 Apple Silicon Mac 的全新隔离目录、独立 Python 虚拟环境与独立工作台端口，Python 3.13、Node.js 22.23.2。
 
-## 已完成
+## v0.1.2 已完成
 
-- 从源码运行 `scripts/setup.sh`，通过 PyPI/npm 安装工作台依赖并完成网页生产构建。
-- Python 自动测试 **361 通过、6 跳过**。覆盖项目与版本、文件路径、确认与回执、重复发送防护、重启恢复、材料、购物清单、历史、安装初始化及自定义端口的同源校验。
+- 下载公开 v0.1.1 ZIP 并全新安装，检查原有观众与 Agent 入门流程，据此修复文档、模板及 CLI 缺口。
+- 将 v0.1.2 待发布文件复制到另一空目录，运行 `scripts/setup.sh`，安装依赖并完成网页生产构建。
+- Python 自动测试 **365 通过、6 跳过**。覆盖项目与版本、文件路径、确认与回执、重复发送防护、重启恢复、材料、购物清单、历史、安装初始化、自定义端口、分工读取及发送助手 CLI 路由。
 - Node 离线检查 **12 通过**。
-- 初始化重复执行保留已有配置与用户偏好，私人配置文件权限为 600。
-- 在临时工作空间通过正常 CLI 执行 `new`、`context` 和 `handoff`，确认空模板复制与接手记录。
-- 使用 `scripts/start.sh --port 18018` 启动独立工作台，健康、项目、总览、设备、历史、购物、资料和待打印接口均返回 HTTP 200。
-- 浏览器检查总览、待打印、购物清单、设备与材料页面。首次运行显示空项目、未连接设备与待安装发送助手。
-- `Harness/macos/build.sh` 完成可选 Mac 应用构建及本机签名校验。
-- 发布文件检查覆盖个人绝对路径、内网地址、凭据常见格式、嵌入凭据的 URL、模型文件扩展名和 Markdown 相对链接。
+- `scripts/verify_onboarding.py` 通过全部 5 组检查。实际 CLI 子进程完成空工作空间初始化、新建项目、分工记录、两次交接及新进程接手；HTTP API 可读取项目、需求和分工，设备保持待配置，待打印队列为空。
+- 使用 `scripts/start.sh --port 18018` 启动全新工作台。在浏览器填写“新想法”，点击复制后显示成功状态；用 CLI 创建该模拟需求，刷新后显示 P001 项目及初始需求。
+- 浏览器打开“复盘与接续”，确认 Sara、Mike、任务小组的模拟分工与本轮交接实际可见。下一进程继续相同项目，历史交接保留。
+- `printlab studio-bridge capability` 对未安装助手返回对应状态。build、capability、permissions 三条 CLI 路由通过 mock 检查。
+- 发布文件检查覆盖个人绝对路径、模型文件扩展名及 Markdown 相对链接。
 
-## 跳过的测试与验证边界
+## 首版已有验证
+
+- 初始化重复执行保留已有配置与用户偏好，私人配置文件权限为 600。
+- 独立工作台的健康、项目、总览、设备、历史、购物、资料和待打印接口返回 HTTP 200。
+- `Harness/macos/build.sh` 完成可选 Mac 应用构建及本机签名校验。原生窗口交互尚未单独验收。
+- 发布文件检查覆盖内网地址、凭据常见格式及嵌入凭据的 URL。
+
+## 验证范围与待验证项
 
 6 项跳过分别对应实机只读集成、两项已安装切片配置和三项私人真实切片样本。相关数据由使用者在自己环境中提供。
 
-首版的这轮验证覆盖软件安装、工作台和模拟流程。新安装用户的真实建模、真实切片、设备连接、Studio 权限和实际打印需要按 `SETUP.md` 与 `PRINTING.md` 逐项验证。其他机型、Bambuddy 新版、其他 Studio 版本与多材料发送路线尚待验证。
+本轮角色任务采用模拟记录，验证的是共享文件、CLI、网页与跨进程接续。实际宿主创建 Sara/Mike 聊天和跨聊天调度尚未验收，也尚未开展独立 Agent 仅凭仓库的盲测。
 
-可选 Mac 应用通过构建和签名校验，原生窗口交互尚未单独验收。网页浏览已完成实际检查。
+其他 Mac 上的安装、图像生成、真实 CAD、切片、设备连接、Studio 权限与打印，需要按 `AGENT_START.md`、`SETUP.md` 和 `PRINTING.md` 在当地环境逐项验证。其他机型、Bambuddy 新版、其他 Studio 版本与多材料发送路线尚待验证。
 
 构建保留两条非阻断提示。Three.js 分包约 528 kB，Vite 提示超过 500 kB。当前 Starlette 测试客户端提示其 httpx 兼容接口将弃用，全部测试仍通过。
 
@@ -28,6 +35,7 @@
 
 ```bash
 bash scripts/setup.sh
+Runtime/venv/bin/python scripts/verify_onboarding.py
 Runtime/venv/bin/python -m pytest Harness/tests -q -rs
 node --test Harness/tests/native-inspection.test.mjs
 cd Harness/studio

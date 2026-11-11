@@ -1,6 +1,6 @@
 # Text-to-CAD试用与物理符合性对照
 
-仅适合项目启用；默认GPT-6.1 Terra。Shared协议：Harness/Experiments/text2cad/README.md；工具准确身份、版本和可用性先核实，不能把默认策略当调用记录。未启用时标不适用。
+适合的项目按 docs/DEPENDENCIES.md 独立安装 Text-to-CAD。运行 Harness/bin/text2cad --help，记录本机实际工具版本、执行模型和可用能力。未启用时标不适用。
 
 - 项目/版本、两次已选图片及设计目标引用：
 - 实际工具、版本/commit、执行模型与运行回执：

@@ -278,7 +278,7 @@ def new_project(name, kind="functional", brief="", summary_text=""):
 def context(pid=None):
     from . import shop, bambuddy
     paths = [ROOT / x for x in ["AGENTS.md", "Context/profile.md", "Context/workflow.md", "Library/Devices/X2D/device.json", "Library/Devices/X2D/installed.md", "Context/lessons.md"]]
-    for rel in ("Context/image-to-print.md", "Context/agent-policy.json", "Context/taste.md"):
+    for rel in ("Context/image-to-print.md", "Context/agent-policy.json", "Context/taste.md", "Context/team.md"):
         if (ROOT / rel).is_file():
             paths.append(ROOT / rel)
     if (ROOT / "Library/Shopping/README.md").is_file():
@@ -290,7 +290,7 @@ def context(pid=None):
     if pid:
         p = project_path(pid)
         paths += [p / "project.json", p / "brief.md", p / "decisions.md"]
-        for rel in ("Review/design-target.json", "Review/model-routing.md", "Review/model-routing.json", "Review/remix-plan.md"):
+        for rel in ("Review/design-target.json", "Review/model-routing.md", "Review/model-routing.json", "Review/remix-plan.md", "Review/team.md"):
             if (p / rel).is_file():
                 paths.append(p / rel)
         pointer = read_json(p / "project.json").get("latest_session")

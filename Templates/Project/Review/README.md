@@ -13,12 +13,12 @@
 
 ## 选图、改装与建模接续
 
-默认按 `Context/image-to-print.md` v3先选外形、再从四套三视图中选一整套，随后建模、真实预览对照、配色与正式3MF。建模默认GPT-6.1 Terra，策略见 `Context/agent-policy.json`。
+默认按 `Context/image-to-print.md` v3先选外形、再从四套三视图中选一整套，随后建模、真实预览对照、配色与正式3MF。建模模型按 `Context/agent-policy.json` 与使用者当前可用环境选择。
 
 已有模型改装填写 `remix-plan.md`；两次选择写 `design-target.json` 与 `design-reference.md`。`model-routing.md` 区分默认/计划与实际执行，实际模型读回证据另存 `model-routing.json`。模板存在不表示选型或检查已完成；当前项目已确认选择直接接续。
 
 <!-- PRINTLAB_TEXT2CAD_TRIAL:BEGIN -->
-## 参数化CAD试用（已配置，适合项目优先使用）
+## 参数化 CAD 接入
 
-共享入口 `<PRINTLAB_ROOT>/Harness/bin/text2cad`；已安装text-to-cad 0.8.2且软件验证通过，调用前读 `Harness/Experiments/text2cad/USAGE.md` 与trial.json。填写 `text2cad-trial.md` 区分尺寸/干涉检查与实物结果。既有选型和Terra默认继续，插件不另行调度打印。
+共享入口为仓库根目录的 `Harness/bin/text2cad`。先按 `docs/DEPENDENCIES.md` 独立安装并用当前 `--help` 核验，再填写 `text2cad-trial.md`。工具版本和几何检查结果来自本机实际执行，具体打印沿用 PrintLab 任务确认流程。
 <!-- PRINTLAB_TEXT2CAD_TRIAL:END -->

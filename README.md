@@ -8,9 +8,11 @@ PrintLab 是阿方（Eric）在 E41 视频中使用的 3D 打印工作台与协�
 
 ## 从这里开始
 
-在 Codex 中打开本仓库，把下面这段话发给它。
+把仓库链接和下面这段话发给具有本机终端、文件读写能力的 Codex 或其他 Agent。
 
-> 请先读 AGENTS.md 和 docs/SETUP.md，帮我在这台 Mac 安装 PrintLab。向我确认打印机型号、喷嘴、打印板和已有耗材。第三方工具按照 docs/DEPENDENCIES.md 从原项目独立安装，先把工作台跑起来，再逐项验证设备连接和建模能力。完成后告诉我已经验证了哪些功能。
+> 请帮我安装 https://github.com/AFangTeam/PrintLab 。先读 README.md、AGENTS.md 和 docs/AGENT_START.md，在本机建立长期工作空间，启动工作台并运行入门验收。帮我建立 Sara · 3D 打印顾问和 Mike · 工作流设计师两个聊天，全部绑定同一工作空间，记录实际建立状态。第一件作品确定后再建立任务小组。第三方工具从原项目独立安装。需要设备信息、登录或系统权限时告诉我具体操作。最后给我工作空间路径、工作台地址、角色入口、验证结果和下一步。
+
+观众的聊天、网页操作与分工示例见 [交互指南](docs/GETTING_STARTED.md)。Agent 的执行步骤与完成标准见 [接手指南](docs/AGENT_START.md)。
 
 想自己安装，可以使用 Python 3.11+ 与 Node.js 22+，在终端执行以下命令。
 
@@ -66,6 +68,7 @@ macOS 14+，推荐 Apple Silicon。通用工作台可独立启动，设备状态
 ## 开发与验证
 
 ```bash
+Runtime/venv/bin/python scripts/verify_onboarding.py
 Runtime/venv/bin/python -m pytest Harness/tests -q
 node --test Harness/tests/native-inspection.test.mjs
 cd Harness/studio && npm run build

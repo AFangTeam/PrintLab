@@ -21,7 +21,14 @@ PrintLab 工作台可在未连接设备时启动。接入 Bambuddy 后提供状�
 
 ## 设置工作台发送助手
 
-在终端运行 `./Harness/bin/printlab studio-bridge --help` 查看当前子命令。先构建助手，再由使用者主动运行权限设置命令，按系统提示授予专用助手权限。`Runtime/config.json` 的 `studio_printer_name` 必须与 Studio 设备名一致，随后重新查询 capability。
+在仓库根目录运行以下命令。`build` 将专用助手安装到本机 `/Applications`，需要 Swift 命令行工具及相应目录写入权限。
+
+```bash
+./Harness/bin/printlab studio-bridge build
+./Harness/bin/printlab studio-bridge capability
+```
+
+使用者选择启用系统权限后，再运行 `./Harness/bin/printlab studio-bridge permissions`，按 macOS 提示授予专用助手权限。随后重跑 `capability` 检查实际状态。`Runtime/config.json` 的 `studio_printer_name` 必须与 Studio 设备名一致。
 
 任务超出支持范围时，按具体提示核对并使用官方 Studio 界面工作流。首次配置完成后，使用者仍需对实际设备、材料与打印结果进行验证。
 

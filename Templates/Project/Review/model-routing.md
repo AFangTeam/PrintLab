@@ -1,6 +1,6 @@
 # 建模执行与交接
 
-默认继承 Context/agent-policy.json：GPT-6.1 Terra（gpt-6.1-terra）。这是一项默认偏好，不是已执行记录。
+读取 Context/agent-policy.json 中的用户模型偏好，核对当前可用模型后执行。实际运行模型尚未核实。
 
 - 当前显式模型例外及用户出处：无
 - 本轮计划执行模型：继承共享默认

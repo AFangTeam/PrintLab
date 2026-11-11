@@ -25,11 +25,11 @@ def main():
                    'Library/Taste/Selections', 'Library/Prepared', 'Context'):
         (ROOT / folder).mkdir(parents=True, exist_ok=True)
     (ROOT / 'Runtime/private').chmod(0o700)
-    for name in ('profile.md', 'taste.md', 'agent-policy.json'):
+    for name in ('profile.md', 'taste.md', 'agent-policy.json', 'team.md'):
         destination = ROOT / 'Context' / name
         if not destination.exists():
             with destination.open('x', encoding='utf-8') as stream:
-                stream.write((ROOT / 'config' / (name + '.example')).read_text())
+                stream.write((ROOT / 'config' / (name + '.example')).read_text().replace('{{workspace_root}}', str(ROOT)))
     write_new(ROOT / 'Runtime/config.json', {
         'bambuddy_url': 'http://127.0.0.1:8017', 'printer_id': None,
         'cad_python': str(ROOT / 'Runtime/venv/bin/python'),

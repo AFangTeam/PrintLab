@@ -110,6 +110,8 @@ def parser():
     so = sub.add_parser('studio-copy', help='Prepare an unapproved official-app package with identical G-code; never sends')
     so.add_argument('project')
     so.add_argument('job')
+    bridge = sub.add_parser('studio-bridge', help='Build or inspect the official Studio helper')
+    bridge.add_argument('action', choices=['build', 'capability', 'permissions'])
     r = sub.add_parser("reconcile")
     r.add_argument("project")
     r.add_argument("job")
@@ -248,6 +250,14 @@ def main(argv=None):
         elif a.command == 'studio-copy':
             from . import official
             result = official.prepare(a.project,a.job)
+        elif a.command == 'studio-bridge':
+            from . import studio_bridge
+            if a.action == 'build':
+                result = {'app_path': str(studio_bridge.build_helper()), 'printed': False}
+            elif a.action == 'permissions':
+                result = studio_bridge.setup_permissions()
+            else:
+                result = studio_bridge.capability()
         elif a.command == "reconcile":
             with core.lock("printer"):
                 result = bambuddy.reconcile(a.project, a.job)

@@ -8,9 +8,11 @@ PrintLab is the 3D-printing workbench and collaboration workflow AFang (Eric) us
 
 ## Get started
 
-Open this repository in Codex and send it this prompt.
+Give the repository URL and this prompt to Codex or another agent with local terminal and filesystem access.
 
-> Read AGENTS.md and docs/SETUP.md, then help me install PrintLab on this Mac. Confirm my printer model, nozzle, build plate, and available filament. Install third-party tools independently from their original projects using docs/DEPENDENCIES.md. Start the workbench first, then verify the printer connection and modeling capabilities. Report which functions you have actually verified.
+> Install https://github.com/AFangTeam/PrintLab on this Mac. Read README.md, AGENTS.md, and docs/AGENT_START.md. Create a persistent workspace, start the workbench, and run the onboarding verification. Create Sara, the 3D-printing advisor, and Mike, the workflow designer, as chats sharing this workspace, and record their actual setup status. Create a task-group chat when I choose my first object. Install third-party tools independently from their original projects. Tell me the specific actions needed for device information, login, or system permissions. Report the workspace path, workbench URL, role entry points, verified results, and next steps.
+
+The interaction guide explains what happens in chat, what happens in the web workbench, and how roles exchange project context. The agent guide provides executable setup steps and completion checks. Both guides currently use Simplified Chinese. [User interaction guide](docs/GETTING_STARTED.md) · [Agent onboarding guide](docs/AGENT_START.md)
 
 For a manual installation, prepare Python 3.11+ and Node.js 22+, then run the following commands.
 
@@ -70,6 +72,7 @@ This repository contains the workbench source, original workflow documents, role
 ## Development and verification
 
 ```bash
+Runtime/venv/bin/python scripts/verify_onboarding.py
 Runtime/venv/bin/python -m pytest Harness/tests -q
 node --test Harness/tests/native-inspection.test.mjs
 cd Harness/studio && npm run build
