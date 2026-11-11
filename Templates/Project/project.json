@@ -1,0 +1,13 @@
+{
+  "id": "{{project_id}}",
+  "name": "{{project_name}}",
+  "slug": "{{project_slug}}",
+  "status": "designing",
+  "kind": "functional",
+  "created_at": "{{created_at}}",
+  "updated_at": "{{created_at}}",
+  "current_revision": null,
+  "bambuddy_project_id": null,
+  "summary": "{{summary}}",
+  "latest_session": null
+}

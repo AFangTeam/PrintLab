@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+export CADGEN_TELEMETRY=0
+export DO_NOT_TRACK=1
+if [ -n "${PRINTLAB_CAD_COMMAND:-}" ]; then
+  exec "$PRINTLAB_CAD_COMMAND" "$@"
+fi
+if command -v cad >/dev/null 2>&1; then
+  exec cad "$@"
+fi
+if command -v cadgen >/dev/null 2>&1; then
+  exec cadgen "$@"
+fi
+echo '请按照 docs/DEPENDENCIES.md 从 earthtojake/text-to-cad 原项目独立安装，再运行本命令。' >&2
+exit 1

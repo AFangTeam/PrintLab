@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+PRINTLAB_SOURCE=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
+export PRINTLAB_ROOT="${PRINTLAB_ROOT:-$PRINTLAB_SOURCE}"
+export PYTHONPATH="$PRINTLAB_SOURCE/Harness${PYTHONPATH:+:$PYTHONPATH}"
+if [ ! -x "$PRINTLAB_SOURCE/Runtime/venv/bin/python" ]; then
+  echo '先在仓库根目录运行 bash scripts/setup.sh' >&2
+  exit 1
+fi
+exec "$PRINTLAB_SOURCE/Runtime/venv/bin/python" -m printlab.cli "$@"

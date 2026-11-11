@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "intent": "local_only",
+  "platform": "MakerWorld",
+  "kind": "unknown",
+  "revision": null,
+  "title": "",
+  "classification_note": "",
+  "geometry_change": "unknown",
+  "changes": [],
+  "retained": [],
+  "sources": [],
+  "all_sources_reviewed": false,
+  "rights_review": {},
+  "platform_review": {},
+  "commercial_use": null,
+  "exclusive_program": false,
+  "output_license": {},
+  "artifacts": [],
+  "photos": [],
+  "cover_photo": null,
+  "target_model_url": "",
+  "profile_review": {},
+  "validation": {
+    "status": "not_tested",
+    "verified_claims": [],
+    "unverified": []
+  }
+}

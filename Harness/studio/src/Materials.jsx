@@ -1,0 +1,23 @@
+import React from 'react';
+import {RefreshCw,Package,Info,Clock3} from 'lucide-react';
+import {materialDisplayColor,materialEnglishLabel,deviceRemainingLabel,inventoryRemainingLabel} from './presentation';
+import './materials.css';
+
+const states={loaded:'已装料',empty:'空槽',identifying:'识别中',unidentified:'已装 · 信息未识别',unknown:'状态未知'};
+const stamp=value=>{if(value==null)return '未知';const n=typeof value==='number'?value*1000:value;const d=new Date(n);return Number.isNaN(+d)?'未知':d.toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'})};
+
+export function AMSSlots({device,onRefresh}) {
+ const data=device?.material_slots,modules=data?.modules||[];
+ return <section className="material-slots-section" aria-label="AMS 实时装料"><div className="section-heading"><div><span className="eyebrow">LOADED MATERIALS</span><h2>当前装料</h2></div>{onRefresh&&<button className="button secondary" onClick={onRefresh}><RefreshCw size={16}/>刷新装料</button>}</div>
+ <div className="material-read-time"><Clock3 size={16}/><span>读取 {stamp(data?.observed_at||device?.updated_at)} · 设备数据 {stamp(data?.source_timestamp)}{!data?.fresh?' · 已过期或时间未知':''}</span></div>
+ {modules.length?modules.map(module=><div className="material-ams-module" key={module.name}><h3>{module.name}</h3><div className="material-slot-grid">{module.slots.map(slot=><article className={`material-slot-card slot-${slot.state}`} key={slot.slot_number}><header><strong>槽位 {slot.slot_number}</strong><span className="status">{states[slot.state]||states.unknown}</span></header><div className="material-slot-identity"><span className="material-color-dot" style={{background:materialDisplayColor(slot).hex}}/><h4>{slot.english_label||'Material not identified'}</h4></div><p className="material-part-number">{slot.material_number?`料号 ${slot.material_number}`:'料号待核实'}{slot.spool_id!=null?` · 料卷 ${slot.spool_id}`:''}</p><p className="material-slot-route">{slot.route?.text||'喷嘴路线待核实'}</p><p className="material-report">{deviceRemainingLabel(slot)}</p><details className="material-diagnostic"><summary>槽位诊断</summary><dl><div><dt>设备 AMS / tray</dt><dd>{slot.diagnostics?.ams_id??'—'} / {slot.diagnostics?.tray_id??'—'}</dd></div><div><dt>物理挤出机编号</dt><dd>{slot.diagnostics?.physical_extruder_id??'未知'}</dd></div><div><dt>设备状态码</dt><dd>{slot.diagnostics?.reported_state??'未知'}</dd></div><div><dt>台账关联核对</dt><dd>{slot.assignment_matches?'系列/色值一致':'未知或有差异'}</dd></div></dl></details></article>)}</div></div>):<div className="material-data-empty"><Package size={26}/><p>尚未读到可用槽位数据；不按历史装料猜测当前状态。</p></div>}
+ <p className="material-support-note"><Info size={16}/><span>按1–4槽找料；喷嘴显示为左主1、右辅2，与固件编号分开。多色可以通过同一喷嘴换料实现，不能据颜色数量判断使用几个喷嘴。设备报告100%也不表示打印后仍为满卷。</span></p></section>;
+}
+
+export function MaterialInventory({inventory}) {
+ const items=inventory?.items||[],uncertain=items.some(m=>m.possible_duplicate_ids?.length);
+ return <div className="material-inventory-section"><div className="material-read-time"><Clock3 size={16}/><span>台账读取 {stamp(inventory?.updated_at)} · 料卷记录与当前装料分开展示</span></div>
+ {uncertain&&<p className="material-identity-warning"><Info size={18}/><span>RFID和手工记录可能对应同一卷，尚未核实。保留独立记录，不合并或合计可用克数。</span></p>}
+ {items.length?<div className="material-ledger-grid">{items.map((m,i)=>{const color=materialDisplayColor(m);return <article className="material-ledger-card" key={m.id??i}><div className="material-ledger-heading"><div className="spool-swatch" style={{'--spool':color.hex}}><span/></div><div><h3>{materialEnglishLabel(m)}</h3><p>{m.material_number?`料号 ${m.material_number}`:'料号待核实'}{m.id!=null?` · 料卷 ${m.id}`:''}</p>{color.approximate&&<p className="material-muted">屏幕近似色</p>}</div></div><p className="material-actual-unknown">实际余量未知</p><p className="material-ledger-estimate">{inventoryRemainingLabel(m)}</p>{m.identity_note&&<p className="material-identity-note">{m.identity_note}</p>}<details className="material-ledger-evidence"><summary>查看余量依据</summary><dl><div><dt>台账来源</dt><dd>{m.data_origin==='rfid_auto'?'RFID自动记录':m.data_origin==='manual'?'手工登记':m.data_origin||'未知'}</dd></div><div><dt>标称净重</dt><dd>{m.label_weight!=null?`${m.label_weight} g`:'未知'}</dd></div></dl>{m.measurement&&<p>称重快照：{m.measurement.net_weight} g · {stamp(m.measurement.at)}，不保证此后没有消耗。</p>}{m.historical_baseline&&<p>历史起点：{m.historical_baseline.remaining_percent}% · {stamp(m.historical_baseline.at)}，仅作当时记录。</p>}<p>余量以接口读数与来源为准；不逐次要求报克数，不按补做切片人工扣料。</p></details></article>})}</div>:<div className="material-data-empty"><Package size={26}/><p>{inventory?.state==='online'?'没有可显示的料卷记录；不表示没有耗材。':'暂时无法读取耗材台账。'}</p></div>}
+ <p className="material-support-note"><Info size={16}/><span>台账中的克数/百分比是估算，不是称重结果；实际余量缺失时保持未知。Bambuddy原生自动追踪继续保留。</span></p></div>;
+}

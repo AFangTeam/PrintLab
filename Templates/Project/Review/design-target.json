@@ -1,0 +1,57 @@
+{
+  "schema_version": 3,
+  "appearance_primary": {
+    "path": null,
+    "sha256": null,
+    "kind": "gpt_concept",
+    "layout": "single_object"
+  },
+  "selection": {
+    "status": "pending",
+    "quote": null,
+    "source": null
+  },
+  "inspiration": [],
+  "mechanical_sources": [],
+  "features": [
+    {
+      "id": "silhouette",
+      "requirement": "Fill the selected concept silhouette and proportions"
+    },
+    {
+      "id": "surface",
+      "requirement": "Fill the characteristic concave/convex contact surfaces"
+    },
+    {
+      "id": "topology",
+      "requirement": "Fill the openings and rib junctions that must be preserved"
+    }
+  ],
+  "modeling_inputs": [],
+  "view_consistency_review": {
+    "status": "pending",
+    "primary_sha256": null,
+    "reviewer": null,
+    "findings": []
+  },
+  "unresolved_conflicts": [],
+  "note": "v3: choose one hero shape, offer four same-shape three-view sets, record the user choice of one complete set, then model and review. Original inspiration cannot replace the chosen GPT shape.",
+  "shape_options": {},
+  "required_concept_views": [
+    "front",
+    "right",
+    "top"
+  ],
+  "required_model_views": [
+    "front",
+    "right",
+    "top"
+  ],
+  "three_view_sets": {},
+  "view_set_selection": {
+    "status": "pending",
+    "set_id": null,
+    "quote": null,
+    "source": null
+  }
+}

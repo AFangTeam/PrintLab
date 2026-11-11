@@ -1,0 +1,9 @@
+Required Notice: Copyright (c) 2026 AFangTeam / 阿方 (Eric)
+Required Notice: PrintLab — https://github.com/AFangTeam/PrintLab
+
+PrintLab-authored code and documentation are provided under the PolyForm
+Noncommercial License 1.0.0 in LICENSE.md. Redistributions must include the
+license terms (or their URL) and both Required Notice lines above.
+
+Third-party packages and programs are downloaded independently from their
+original authors. They retain their respective licenses and notices.

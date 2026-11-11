@@ -1,0 +1,35 @@
+{
+  "id": "YYYYMMDD-shape-round-01",
+  "stage": "shape",
+  "purpose": "在同一用途下比较外形",
+  "occurred_at": "填写实际日期；未知为null",
+  "outcome": "selected",
+  "options": [
+    {
+      "id": "A",
+      "label": "方案A",
+      "images": [
+        "Preview/Concepts/round-01/A.png"
+      ]
+    },
+    {
+      "id": "B",
+      "label": "方案B",
+      "images": [
+        "Preview/Concepts/round-01/B.png"
+      ]
+    }
+  ],
+  "selected_option_ids": [
+    "A"
+  ],
+  "user_feedback": {
+    "quote": "填写真实用户原话",
+    "source": "消息/问题ID或带出处的项目记录",
+    "reason": null,
+    "modifications": []
+  },
+  "choice_basis": "unknown",
+  "supersedes": null,
+  "notes": "助手描述、质量问题及缺失资料另记；不冒充用户理由"
+}

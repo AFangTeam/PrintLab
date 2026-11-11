@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "target_contract_sha256": null,
+  "primary_sha256": null,
+  "model": {
+    "path": "Exports/vNNN/model.stl",
+    "sha256": null
+  },
+  "reviewer": null,
+  "appearance": "pending",
+  "findings": [],
+  "features": {},
+  "renders": {},
+  "print_authorized": false,
+  "note": "Save as Review/design-gates/vNNN.json after viewing the actual model against the selected three-view set. Every locked feature needs result=pass and evidence. Each required render (normally front/right/top) needs path, sha256 and model_sha256. No print authorization."
+}

@@ -1,0 +1,24 @@
+import React,{useEffect,useState} from 'react';
+import {Printer,Search,RefreshCw,ArrowUpRight,FolderOpen} from 'lucide-react';
+import './history.css';
+
+const states={completed:'设备已完成',failed:'打印失败',cancelled:'已取消',printing:'正在打印',paused:'已暂停',archived:'仅存档 · 未确认开打',unresolved:'结束状态待核对'};
+const when=t=>t?new Date(t).toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'时间未记录';
+const duration=n=>n==null?'用时未记录':n<60?`${n} 秒`:`${Math.floor(n/3600)} 小时 ${Math.floor(n%3600/60)} 分`;
+
+export default function History({onNavigate}){
+ const [data,setData]=useState(null),[error,setError]=useState(''),[loading,setLoading]=useState(false),[query,setQuery]=useState(''),[filter,setFilter]=useState('all');
+ useEffect(()=>{let alive=true,busy=false;const load=async()=>{if(busy)return;busy=true;if(alive)setLoading(true);try{const r=await fetch('/api/history',{cache:'no-store'});if(!r.ok)throw Error('无法读取打印历史');const next=await r.json();if(alive){setData(next);setError('')}}catch(e){if(alive)setError(e.message)}finally{busy=false;if(alive)setLoading(false)}};load();const timer=setInterval(load,60000);addEventListener('printlab:refresh',load);return()=>{alive=false;clearInterval(timer);removeEventListener('printlab:refresh',load)}},[]);
+ const items=(data?.items||[]).filter(r=>(filter==='all'||filter==='external'&&r.origin==='external'||filter==='linked'&&r.origin==='linked_project'||filter==='issues'&&['failed','cancelled','unresolved'].includes(r.status))&&`${r.name} ${r.project_name||''} ${r.archive_id||''}`.toLowerCase().includes(query.toLowerCase()));
+ return <section className="history-page"><header className="page-heading"><div><span className="eyebrow">PRINT HISTORY</span><h1>每一次打印，都在这里。</h1><p>汇集工作台项目与外部打印，包含已被设备记录捕获的 Handy、Studio 和屏幕发起的任务。</p></div><button className="button secondary" disabled={loading} onClick={()=>dispatchEvent(new Event('printlab:refresh'))}><RefreshCw size={18}/>{loading?'正在读取':'刷新记录'}</button></header>
+ {(error||data?.stale)&&<p className="inline-error" role="alert">{error||data.message} {data?.updated_at?`上次成功：${when(data.updated_at)}`:''}</p>}
+ {!data&&!error?<p className="muted" role="status">正在读取打印历史…</p>:<>
+ <div className="history-summary"><div><strong>{data?.counts?.prints??'—'}</strong><span>已捕获的打印</span></div><div><strong>{data?.counts?.external??'—'}</strong><span>外部 / 未关联</span></div><div><strong>{data?.counts?.linked??'—'}</strong><span>关联工作台项目</span></div><div><strong>{data?.counts?.completed??'—'}</strong><span>设备报告完成</span></div></div>
+ <p className="history-coverage">记录起于 {when(data?.coverage?.from)} · 最近同步 {when(data?.updated_at)}。服务运行时每分钟读取本机历史。Handy云端完整历史尚未接通；档案照片不一定对应该次重印，设备完成仍需实物验收。</p>
+ <div className="collection-toolbar"><div className="filter-tabs" aria-label="打印记录筛选">{[['all','全部记录'],['external','外部 / 未关联'],['linked','工作台项目'],['issues','失败 / 待核对']].map(([id,label])=><button key={id} className={filter===id?'selected':''} aria-pressed={filter===id} onClick={()=>setFilter(id)}>{label}</button>)}</div><label className="search-box"><Search size={18}/><input aria-label="搜索打印历史" placeholder="搜索模型、项目或档案编号" value={query} onChange={e=>setQuery(e.target.value)}/></label></div>
+ <p className="history-count">显示 {items.length} 条记录。未关联记录可能来自 Handy、Studio 或打印机屏幕，具体发起 App 未核实；仅存档文件不计入打印次数。</p>
+ <div className="history-list">{items.map(r=><article className="history-record" key={r.id}>{r.archive_photo_url?<div className="history-photo"><img src={r.archive_photo_url} alt="打印档案照片" loading="lazy"/><span>档案照片</span></div>:<div className="history-icon"><Printer size={24}/></div>}<div className="history-content"><div className="history-title"><h2>{r.name}</h2><span className={`status ${r.status==='completed'?'positive':['failed','unresolved'].includes(r.status)?'attention':''}`}><span/>{states[r.status]||r.status}{r.progress!=null?` · ${r.progress}%`:''}</span></div><p className="history-meta">{when(r.started_at||r.created_at)} · {duration(r.duration_seconds)} · {r.origin==='linked_project'?'工作台关联':'外部 / 未关联'} · 档案 #{r.archive_id??'未关联'}</p><div className="history-details"><span>{r.has_3mf?'档案已保存打印文件':'档案无模型文件'}</span><span>{r.reported_weight_grams==null?'用料未记录':`记录用料 ${r.reported_weight_grams.toFixed(1)} g · 非称重`}</span></div><div className="history-links">{r.project_id&&<button className="text-link" onClick={()=>onNavigate(`projects/${r.project_id}`)}><FolderOpen size={16}/>{r.project_name}<ArrowUpRight size={16}/></button>}{r.makerworld_url&&<a className="text-link" href={r.makerworld_url} target="_blank" rel="noreferrer">MakerWorld 模型页<ArrowUpRight size={16}/></a>}</div></div></article>)}</div>
+ {!items.length&&<div className="empty-state"><Printer size={32}/><h3>{query||filter!=='all'?'没有符合筛选的记录':'暂未读到打印记录'}</h3><p>{query||filter!=='all'?'试试其他名称，或切回全部记录。':'连接恢复后可刷新；这里不会生成示例记录。'}</p></div>}
+ </>}
+ </section>
+}

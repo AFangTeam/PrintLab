@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "purpose": "Evidence-backed design review; a reviewer opinion is not independent geometric proof or print authorization",
+  "candidate_id": null,
+  "reference": {"path": null, "sha256": null, "kind": "concept_perspective", "selected_evidence": null},
+  "model": {"path": null, "sha256": null, "units": "mm", "source_files": []},
+  "view_match": {"status": "unmatched", "method": null, "unknown_surfaces": []},
+  "renders": [],
+  "requirements": [
+    {"id": "appearance-targets", "category": "appearance", "requirement": "Replace with 3-5 observable shape requirements", "basis": "user_selected_reference", "result": "unknown", "evidence": []},
+    {"id": "critical-dimensions", "category": "dimension", "requirement": "Replace with measured/official/assumed dimensions and tolerances", "basis": "unknown", "result": "unknown", "evidence": []},
+    {"id": "assembly-path", "category": "assembly", "requirement": "Replace with full insertion path, clearances and local fit tests", "basis": "unknown", "result": "unknown", "evidence": []}
+  ],
+  "review": {"reviewer": null, "reviewed_mesh_sha256": null, "appearance": "pending", "functional_scope": "untested", "findings": [], "next_step": null},
+  "print_authorized": false,
+  "limits": ["Unseen surfaces are design assumptions", "Image scale does not measure interface dimensions", "No physical fit, strength or print quality verification"]
+}
