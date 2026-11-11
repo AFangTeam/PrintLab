@@ -9,7 +9,7 @@ import tempfile
 import time
 
 import httpx
-from printlab import bambuddy, core
+from printlab import bambuddy, core, native
 
 ROOT = Path(__file__).resolve().parent.parent
 VERSION = 'v1.2.5.7'
@@ -35,7 +35,10 @@ def main():
                            check=True, stdout=log, stderr=log, timeout=600)
             with (output/'bambuddy-packages.txt').open('w', encoding='utf-8') as packages:
                 subprocess.run([str(python), '-m', 'pip', 'freeze'], check=True, stdout=packages, timeout=30)
-            probe(source, python, root, output, log)
+            report = probe(source, python, root, output, log)
+    report['temporary_data_removed'] = True
+    (output/'bambuddy-install.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
+    print(json.dumps(report))
 
 
 def probe(source, python, root, output, log):
@@ -44,9 +47,10 @@ def probe(source, python, root, output, log):
         port = listener.getsockname()[1]
     environment = {k: v for k, v in os.environ.items() if k not in ('DATABASE_URL', 'DATA_DIR', 'PYTHONPATH')}
     environment.update(DATA_DIR=str(root/'data'), PYTHONUTF8='1', PYTHONDONTWRITEBYTECODE='1')
+    process_options = {'creationflags': subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == 'nt' else {'start_new_session': True}
     process = subprocess.Popen([str(python), '-m', 'uvicorn', 'backend.app.main:app',
                                 '--host', '127.0.0.1', '--port', str(port), '--loop', 'asyncio'],
-                               cwd=source, env=environment, stdout=log, stderr=log)
+                               cwd=source, env=environment, stdout=log, stderr=log, **process_options)
     base = f'http://127.0.0.1:{port}'
     previous_root = core.ROOT
     try:
@@ -85,20 +89,13 @@ def probe(source, python, root, output, log):
             assert bambuddy.inventory()['state'] == 'online'
             response = http.delete('/api/v1/api-keys/'+str(credential['id']))
             response.raise_for_status()
-            report = {'ok': True, 'os': sys.platform, 'version': VERSION, 'commit': COMMIT,
+            return {'ok': True, 'os': sys.platform, 'version': VERSION, 'commit': COMMIT,
                       'read_routes': paths, 'independent_service': True,
                       'credential_created_and_revoked': True, 'printer_contacted': False,
                       'frontend_installed': False, 'scope': 'Official source backend and real PrintLab HTTP client'}
-            (output/'bambuddy-install.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
-            print(json.dumps(report))
     finally:
         core.ROOT = previous_root
-        process.terminate()
-        try:
-            process.wait(timeout=30)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait(timeout=10)
+        native._terminate_group(process)
 
 
 if __name__ == '__main__':
