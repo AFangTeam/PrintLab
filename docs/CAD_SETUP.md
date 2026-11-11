@@ -24,6 +24,8 @@ Runtime/third-party/cad-bootstrap/Scripts/python.exe -m uv tool run --no-config 
 
 检查计划，确认操作的是希望配置的 Codex。执行同一条最后命令，移除 `--dry-run`，即可安装；需要关闭遥测时加 `--no-telemetry`。不要对已有可用的个人插件盲目升级：上游安装器可能替换该宿主内的旧副本。按安装器提示重启宿主，再核实插件和技能实际出现。未检测到 Codex 时先处理宿主安装，不能宣称完成了插件接入。
 
+安装后的共享入口在 Mac 为 `./Harness/bin/text2cad`，Windows 为 `powershell -NoProfile -ExecutionPolicy Bypass -File .\Harness\bin\text2cad.ps1`。两者优先查找 `cad`，兼容旧版 `cadgen`。PATH 尚未更新时，将 `PRINTLAB_CAD_COMMAND` 设置为安装器报告的可执行文件完整路径，再通过该入口运行 `--help`。路径可以包含空格。
+
 ## 验证顺序
 
 1. 用安装生成的 `cad --help` 与 `cad doctor --check` 检查命令和服务。若 PATH 未刷新，使用安装器报告的实际可执行路径；PrintLab 的 `PRINTLAB_CAD_COMMAND` 可指定它。
