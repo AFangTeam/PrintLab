@@ -36,6 +36,8 @@ Python 版本不够时，安装 Python 3.11 或更新版，用绝对路径运行
 
 开始前完成 [首次配置访谈](FIRST_RUN.md)。
 
+独立安装、URL、只读权限与接口验收步骤见 [Bambuddy 配置](BAMBUDDY_SETUP.md)。
+
 1. 使用者从 Bambuddy 原项目独立安装，按上游说明运行服务并添加自己的打印机。它管理设备连接、库存和历史。
 2. 在 Bambuddy 设置中创建只读 API key，读取其打印机 ID。写入 `Runtime/private/bambuddy.json` 的 `read_api_key`，保持文件权限 600。需要实际发送时，才配置具有相应权限的 `write_api_key`。
 3. 编辑 `Runtime/config.json`，填写 `bambuddy_url` 和 `printer_id`。默认 URL 是 `http://127.0.0.1:8017`，应按自己实际安装的地址调整。
@@ -64,6 +66,8 @@ API key 只保存在本机受限文件中，填写时不要把真实 key 粘进�
 按 `PRINTING.md` 逐项验证。工作台发送助手需要独立构建与用户授予辅助功能、屏幕读取权限。`studio_printer_name` 填写自己 Bambu Studio 中的准确设备名称，发送时还会检查序列号匹配。
 
 ## 更新与备份
+
+完整更新、验证恢复与回退步骤见 [更新指南](UPGRADING.md)。
 
 更新前保存本机项目与配置。`python3 Harness/backup.py backup --help` 查看当前备份参数，备份含私人配置，保存在自己的受限目录。Git 更新源码后重跑 `setup.sh`，初始化会保留已有配置和资料。第三方工具升级后，重新核对接口和切片行为。
 

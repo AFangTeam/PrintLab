@@ -103,3 +103,4 @@ if __name__ == '__main__':
     if os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ.get('PRINTLAB_SKIP_RELEASE_CHECK') != '1':
         subprocess.run([sys.executable, str(ROOT / 'scripts/verify_release_install.py')], check=True)
         subprocess.run([sys.executable, str(ROOT / 'scripts/verify_cad_install.py')], check=True)
+        subprocess.run([sys.executable, str(ROOT / 'scripts/verify_bambuddy_install.py')], check=True)
