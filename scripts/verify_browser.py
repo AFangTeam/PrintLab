@@ -68,15 +68,16 @@ def main():
                 page.goto(base + '/#/projects/' + project['id'])
                 page.get_by_role('heading', name='Windows 中文工作流验收', exact=True).wait_for()
                 assert '验证用途与尺寸记录' in page.locator('main').inner_text()
-                page.screenshot(path=str(output / 'project-desktop.png'), full_page=True)
+                page.screenshot(path=str(output / 'project-desktop.png'), full_page=True, animations='disabled')
                 page.goto(base + '/#/prepared')
                 if sys.platform == 'win32':
                     page.get_by_role('heading', name='通过官方 Studio 打印').wait_for()
                     assert page.get_by_role('button', name='启用发送助手', exact=True).count() == 0
-                page.screenshot(path=str(output / 'prepared-desktop.png'), full_page=True)
+                page.screenshot(path=str(output / 'prepared-desktop.png'), full_page=True, animations='disabled')
                 page.set_viewport_size({'width': 390, 'height': 844})
                 page.goto(base + '/#/projects')
-                page.screenshot(path=str(output / 'projects-mobile.png'), full_page=True)
+                page.get_by_role('heading', name='项目图册', exact=True).wait_for()
+                page.screenshot(path=str(output / 'projects-mobile.png'), full_page=True, animations='disabled')
                 assert failures == [], failures
                 browser.close()
             result = {'ok': True, 'os': platform.platform(), 'python': sys.version,
