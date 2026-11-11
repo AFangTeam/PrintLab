@@ -104,3 +104,4 @@ if __name__ == '__main__':
         subprocess.run([sys.executable, str(ROOT / 'scripts/verify_release_install.py')], check=True)
         subprocess.run([sys.executable, str(ROOT / 'scripts/verify_cad_install.py')], check=True)
         subprocess.run([sys.executable, str(ROOT / 'scripts/verify_bambuddy_install.py')], check=True)
+        subprocess.run([sys.executable, str(ROOT / 'scripts/verify_studio_install.py')], check=True)

@@ -55,6 +55,8 @@ API key 只保存在本机受限文件中，填写时不要把真实 key 粘进�
 - **Blender** 从官网安装，`Runtime/config.json` 中的 `blender_path` 默认指向 `/Applications/Blender.app/Contents/MacOS/Blender`。
 - **Bambu Studio** 从官方来源安装，登录和连接自己的设备。`slicer_path` 默认指向 `/Applications/BambuStudio.app/Contents/MacOS/BambuStudio`。切片配置从这份本机安装读取。
 
+具体路径、配置解析和离线切片验收见 [Studio 安装指南](STUDIO_SETUP.md)。
+
 各工具都准备好后，运行 `doctor`，让 Codex 在临时项目中验证真实尺寸、单位、导出和预览。首版当前 build 引擎为 CadQuery/Blender，Text-to-CAD 生成的 STEP 可以通过同版本 CadQuery 桥接导出，须保留源脚本和输入。
 
 ## 可选 Mac 窗口

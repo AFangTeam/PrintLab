@@ -28,6 +28,15 @@ def _terminate_group(proc):
             os.killpg(proc.pid, sig)
         except ProcessLookupError:
             pass
+        except PermissionError:
+            # Check whether the denied signal raced with group exit. Only an
+            # absent group or zombie-only group establishes completed cleanup.
+            snapshot = subprocess.run(['ps', '-axo', 'pgid=,stat='],
+                                      capture_output=True, text=True, check=True, timeout=5)
+            members = [row.split()[1] for row in snapshot.stdout.splitlines()
+                       if len(row.split()) == 2 and row.split()[0] == str(proc.pid)]
+            if any(not state.startswith('Z') for state in members):
+                raise core.WorkflowError('Child process cleanup was denied; outcome requires reconciliation') from None
     send(signal.SIGTERM)
     try:
         proc.communicate(timeout=TERMINATE_GRACE_SECONDS)

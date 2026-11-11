@@ -29,6 +29,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Harness\bin\printlab.ps1 c
 
 Bambu Studio、Blender、Text-to-CAD、Bambuddy 和可选建模依赖均从各自上游独立获取。按照上游 Windows 安装说明记录实际版本和可执行文件路径。来源见 [依赖说明](DEPENDENCIES.md)。
 
+独立安装步骤见 [Text-to-CAD](CAD_SETUP.md)、[Bambuddy](BAMBUDDY_SETUP.md) 和 [Bambu Studio](STUDIO_SETUP.md)。
+
 在 `Runtime/config.json` 核对 `slicer_path`、`slicer_profiles_path`、`blender_path` 和 `cad_python`。安装程序会查找 PATH 与 Program Files 中的 Bambu Studio、Blender。JSON 中 Windows 路径可使用正斜杠，例如 `C:/Program Files/Bambu Studio/bambu-studio.exe`。切片配置目录通常为安装目录的 `resources/profiles`，应以实际安装为准。
 
 需要 CadQuery 导出时，使用本机虚拟环境独立安装并检查实际导出。
