@@ -66,3 +66,18 @@ def inspect(jd, job, *, timeout=90):
             raise core.WorkflowError(f'独立离线检查失败：{error}') from None
         return {'ok': True, 'executed': False, 'phase': 'offline_inspection',
                 'inspection': receipt['inspection'], 'receipt': receipt, 'inspector_version': VERSION}
+
+
+def self_test():
+    """Verify the installed public tool with disposable synthetic data, never dispatch."""
+    with tempfile.TemporaryDirectory(prefix='PrintLab inspector selftest ') as temporary:
+        directory = Path(temporary)
+        artifact = directory / 'probe.gcode'
+        artifact.write_text(
+            '; synthetic self-test; never print\n; printer_model = Bambu Lab X2D\n'
+            '; nozzle_diameter = 0.4,0.4\n; nozzle_type = hardened_steel,hardened_steel\n'
+            '; filament_type = PETG\n; filament_map = 1\n; physical_extruder_map = 1,0\n'
+            'M620 S0A\nT0\nM621 S0A\nM109 T1 S240\nG1 X10 Y10 E1\nM104 S0\n', encoding='utf-8')
+        result = inspect(directory, {'artifact':artifact.name, 'artifact_sha256':core.digest(artifact), 'plate':1}, timeout=30)
+        return {'available': True, 'version': VERSION, 'verified': 'public MCP file inspection',
+                'executed':False, 'scope':'synthetic file only; no printer or official profiles tested'}

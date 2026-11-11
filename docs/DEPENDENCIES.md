@@ -32,3 +32,5 @@ Python 包在 `Harness/pyproject.toml` 声明。网页依赖在 `Harness/studio/
 工作台安装脚本会运行 `scripts/install_inspector.py`，从 npm 独立获取检查器及依赖，保存于被 Git 忽略的 `Runtime/third-party/bambu-inspector`。仓库仅保存下载清单与完整性校验，不分发第三方源代码、插件或模型。检查器保留其 GPL-2.0 许可。需要单独重装时使用工作台虚拟环境的 Python 执行该脚本。
 
 Python 依赖使用 `scripts/requirements.lock` 的版本和 SHA-256；前端与检查器分别使用自己的 package-lock.json。升级时更新锁文件并重跑跨平台验收，不能直接改为 latest。
+
+Text-to-CAD 的固定版本、Mac/Windows 安装命令、宿主接入和最小建模验收见 [CAD 安装指南](CAD_SETUP.md)。
