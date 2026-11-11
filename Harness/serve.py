@@ -32,7 +32,7 @@ def main():
     try:
         # macOS app CLI can be unavailable to launchd even while Tailscale is online.
         # The installer records the observed address; it is not a public bind.
-        cfg = json.loads((ROOT/'Runtime/config.json').read_text())
+        cfg = json.loads((ROOT/'Runtime/config.json').read_text(encoding="utf-8"))
         ip = cfg.get('tailscale_ip')
         if not ip:
             raise ValueError('No remote listener configured')

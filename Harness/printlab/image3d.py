@@ -74,13 +74,13 @@ def generate(project, reference, candidate, crop, height_mm, steps, resolution, 
         if output.is_dir():
             def decoded(value):
                 return value.decode(errors="replace") if isinstance(value, bytes) else (value or "")
-            (output / "inference.log").write_text(decoded(exc.stdout) + decoded(exc.stderr))
+            (output / "inference.log").write_text(decoded(exc.stdout) + decoded(exc.stderr), encoding="utf-8")
             m = core.read_json(output / "manifest.json", {})
             m.update(status="generation_timed_out", error="Worker exceeded 900 seconds")
             core.write_json(output / "manifest.json", m)
         raise core.WorkflowError("Image3D generation timed out; this candidate remains incomplete, inspect before a new attempt") from exc
     if output.is_dir():
-        (output / "inference.log").write_text(run.stdout + run.stderr)
+        (output / "inference.log").write_text(run.stdout + run.stderr, encoding="utf-8")
     if run.returncode:
         raise core.WorkflowError(f"Image3D worker failed ({run.returncode}); inspect candidate manifest, never retry into the same directory")
     blender = core.config().get("blender_path")

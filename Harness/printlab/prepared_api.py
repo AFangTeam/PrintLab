@@ -112,7 +112,7 @@ def sender_capability(request: Request):
     result = studio_bridge.capability()
     observed = result.pop('observation', {})
     result['permissions'] = {k: observed.get(k) is True for k in ('accessibility', 'screen_capture')}
-    result['setup_required'] = not all(result['permissions'].values())
+    result['setup_required'] = result.get('setup_supported', True) and not all(result['permissions'].values())
     return result
 
 class EnableSender(BaseModel):

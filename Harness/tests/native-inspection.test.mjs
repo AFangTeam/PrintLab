@@ -56,7 +56,7 @@ test('redaction handles absent, empty and encoded credentials',()=>{
 });
 test('dependency tree pin changes on altered bytes, filenames or escaping links',()=>{
  const temp=fs.mkdtempSync(path.join(os.tmpdir(),'printlab-tree-test-'));
- try{fs.writeFileSync(path.join(temp,'a.js'),'one');const a=treeHash(temp).sha256;fs.writeFileSync(path.join(temp,'a.js'),'two');assert.notEqual(treeHash(temp).sha256,a);fs.symlinkSync('/etc/hosts',path.join(temp,'escape'));assert.throws(()=>treeHash(temp),/escapes/)}finally{fs.rmSync(temp,{recursive:true,force:true})}
+ try{fs.writeFileSync(path.join(temp,'a.js'),'one');const a=treeHash(temp).sha256;fs.writeFileSync(path.join(temp,'a.js'),'two');assert.notEqual(treeHash(temp).sha256,a);fs.symlinkSync(process.execPath,path.join(temp,'escape'));assert.throws(()=>treeHash(temp),/escapes/)}finally{fs.rmSync(temp,{recursive:true,force:true})}
 });
 
 

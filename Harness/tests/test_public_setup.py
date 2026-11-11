@@ -2,6 +2,8 @@
 import importlib.util
 from pathlib import Path
 import shutil
+import sys
+from printlab import platforms
 import pytest
 
 from printlab import core, history, native, studio_bridge
@@ -17,9 +19,10 @@ def test_initializer_preserves_local_data_and_uses_new_root(tmp_path, monkeypatc
     shutil.copytree(SOURCE / 'config', tmp_path / 'config')
     initializer.main()
     config = tmp_path / 'Runtime/config.json'
-    assert core.read_json(config)['cad_python'] == str(tmp_path / 'Runtime/venv/bin/python')
+    assert core.read_json(config)['cad_python'] == str(platforms.venv_python(tmp_path / 'Runtime/venv'))
     private = tmp_path / 'Runtime/private/bambuddy.json'
-    assert private.stat().st_mode & 0o777 == 0o600
+    if sys.platform != 'win32':
+        assert private.stat().st_mode & 0o777 == 0o600
     config.write_text('{"printer_id": 42}')
     profile = tmp_path / 'Context/profile.md'
     profile.write_text('My local choices')
@@ -67,6 +70,7 @@ def test_custom_port_keeps_same_origin_validation(tmp_path, monkeypatch):
     assert client.get('/api/prepared/session', headers={'Origin': 'http://localhost:18018'}).status_code == 403
 
 
+@pytest.mark.skipif(sys.platform != 'darwin', reason='macOS sender adapter')
 def test_missing_sender_is_reported_as_unavailable(monkeypatch):
     def missing(*args, **kwargs):
         raise core.WorkflowError('发送助手未安装')

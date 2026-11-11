@@ -84,8 +84,8 @@ def main():
         "reference": {"path": str(a.reference.resolve()), "sha256": digest(a.reference)},
         "conditioning": {"path": input_path.name, "sha256": digest(input_path),
                          "crop_ltrb": a.crop, "method": "original RGB + alpha/white-background GrabCut largest component"},
-        "model_source": json.loads((WEIGHTS / "printlab-model-source.json").read_text()),
-        "code_source": json.loads((SOURCE / "printlab-source.json").read_text()),
+        "model_source": json.loads((WEIGHTS / "printlab-model-source.json").read_text(encoding="utf-8")),
+        "code_source": json.loads((SOURCE / "printlab-source.json").read_text(encoding="utf-8")),
         "worker_sha256": digest(__file__),
         "parameters": {"steps": a.steps, "resolution": a.resolution, "seed": a.seed,
                        "quantize_bits": a.quantize, "dtype": "float16", "octree_decode": True,
@@ -97,7 +97,7 @@ def main():
     }
     mp = a.output / "manifest.json"
     def save():
-        mp.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+        mp.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     save()
     if a.prepare_only:
         return

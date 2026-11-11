@@ -141,7 +141,7 @@ def test_controlled_3mf_input_is_snapshotted_and_bound_without_author_settings(w
     class Result:
         returncode=0;stdout='synthetic slicer';stderr=''
     def fake_run(command,**kwargs):
-        assert command[-1].endswith('/Input/model.3mf')
+        assert Path(command[-1]).parts[-2:] == ('Input', 'model.3mf')
         assert Path(command[-1]).read_bytes()==model.read_bytes()
         out=Path(command[command.index('--export-3mf')+1])
         with zipfile.ZipFile(jd/'job.gcode.3mf') as old, zipfile.ZipFile(out,'w') as new:

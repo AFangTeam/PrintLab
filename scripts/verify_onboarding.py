@@ -33,14 +33,14 @@ def main():
         (workspace / 'scripts').mkdir()
         shutil.copy2(ROOT / 'scripts/init_workspace.py', workspace / 'scripts/init_workspace.py')
         environment = {**os.environ, 'PRINTLAB_ROOT': str(workspace),
-                       'PYTHONPATH': str(ROOT / 'Harness')}
+                       'PYTHONPATH': str(ROOT / 'Harness'), 'PYTHONUTF8': '1'}
         subprocess.run([sys.executable, str(workspace / 'scripts/init_workspace.py')],
                        env=environment, check=True, capture_output=True, timeout=30)
-        command = [str(ROOT / 'Harness/bin/printlab')]
+        command = [sys.executable, '-X', 'utf8', '-m', 'printlab.cli']
         initial = run_json([*command, 'context'], workspace, environment)
         assert initial['missing'] == [], initial['missing']
         assert 'Context/team.md' in initial['loaded']
-        assert str(workspace) in (workspace / 'Context/team.md').read_text()
+        assert str(workspace) in (workspace / 'Context/team.md').read_text(encoding="utf-8")
         checks.append('empty_workspace_and_team_initialized')
 
         project = run_json([*command, 'new', '入门验收挂钩', '--kind', 'functional',
@@ -50,7 +50,7 @@ def main():
         directory = workspace / 'Project' / f"{pid}-{project['slug']}"
         team = directory / 'Review/team.md'
         assert team.is_file()
-        team.write_text(team.read_text() + '\n验收模拟分工：Sara 核对材料，Mike 检查工具，任务小组整理需求。\n')
+        team.write_text(team.read_text(encoding="utf-8") + '\n验收模拟分工：Sara 核对材料，Mike 检查工具，任务小组整理需求。\n', encoding="utf-8")
         checks.append('project_created_with_team_template')
 
         first = run_json([*command, 'handoff', pid, '--note',

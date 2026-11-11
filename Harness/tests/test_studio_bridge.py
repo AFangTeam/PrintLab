@@ -1,3 +1,8 @@
+import sys
+import pytest
+
+pytestmark = pytest.mark.skipif(sys.platform != "darwin", reason="macOS Studio adapter")
+
 import copy
 import json
 import os

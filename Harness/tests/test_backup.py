@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import sqlite3
 import stat
+import sys
 import subprocess
 
 import pytest
@@ -64,9 +65,11 @@ def test_live_wal_roundtrip_is_private_and_does_not_replace_live_files(tmp_path)
         assert "Runtime/bambuddy-data/.jwt_secret" in names
         assert "Runtime/config.json" in names
         assert manifest["sqlite_included"]
-        assert stat.S_IMODE(snapshot.stat().st_mode) == 0o700
+        if sys.platform != 'win32':
+            assert stat.S_IMODE(snapshot.stat().st_mode) == 0o700
         for path in snapshot.rglob("*"):
-            assert stat.S_IMODE(path.stat().st_mode) == (0o700 if path.is_dir() else 0o600)
+            if sys.platform != 'win32':
+                assert stat.S_IMODE(path.stat().st_mode) == (0o700 if path.is_dir() else 0o600)
         # A later live change must survive recovery verification untouched.
         put(root, "Project/P001/brief.md", "live revised brief")
         live.execute("INSERT INTO jobs VALUES (2, 'later live job')")
@@ -85,7 +88,8 @@ def test_live_wal_roundtrip_is_private_and_does_not_replace_live_files(tmp_path)
         assert result["sqlite_quick_check"] == "ok"
         assert not result["live_files_replaced"]
         for path in Path(result["recovery_directory"]).rglob("*"):
-            assert stat.S_IMODE(path.stat().st_mode) == (0o700 if path.is_dir() else 0o600)
+            if sys.platform != 'win32':
+                assert stat.S_IMODE(path.stat().st_mode) == (0o700 if path.is_dir() else 0o600)
     finally:
         live.close()
 
@@ -168,7 +172,8 @@ def test_recovery_preserves_handoff_selection_content_and_executable(tmp_path, m
     selected = lambda context: [(d["path"], d["sha256"], d["text"]) for d in context["documents"] if "/Sessions/" in d["path"]]
     assert selected(original_context)[0][0].endswith("2026-implementation.md")
     snapshot = backup.create_backup(root)
-    assert stat.S_IMODE((snapshot / "payload/Harness/bin/example").stat().st_mode) == 0o600
+    if sys.platform != 'win32':
+        assert stat.S_IMODE((snapshot / "payload/Harness/bin/example").stat().st_mode) == 0o600
     result = backup.verify_restore(snapshot, root)
     restored = Path(result["recovery_directory"]) / "payload"
     for source in (old, latest):
@@ -179,5 +184,7 @@ def test_recovery_preserves_handoff_selection_content_and_executable(tmp_path, m
     assert selected(core.context("P001")) == selected(original_context)
     assert core.context("P001")["shopping"] == original_context["shopping"]
     restored_command = restored / "Harness/bin/example"
-    assert stat.S_IMODE(restored_command.stat().st_mode) == 0o700
-    assert subprocess.check_output([str(restored_command)], text=True) == "recovered-entrypoint"
+    if sys.platform != 'win32':
+        assert stat.S_IMODE(restored_command.stat().st_mode) == 0o700
+    if sys.platform != 'win32':
+        assert subprocess.check_output([str(restored_command)], text=True) == "recovered-entrypoint"

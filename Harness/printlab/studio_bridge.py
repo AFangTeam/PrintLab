@@ -19,6 +19,7 @@ import plistlib
 import shutil
 import tempfile
 import uuid
+import sys
 from pathlib import Path
 
 from . import core, bambuddy, official
@@ -112,7 +113,7 @@ def _run(*args, timeout=20):
         with os.fdopen(fd,'w') as stream:stream.write(payload)
         subprocess.run(['/usr/bin/open','-n','-W','-a',str(_bundle_path()),'--args','--ipc',str(request),str(response)],
                        check=True,capture_output=True,text=True,timeout=timeout)
-        try:data=json.loads(response.read_text())
+        try:data=json.loads(response.read_text(encoding="utf-8"))
         except (OSError,ValueError,TypeError):raise core.WorkflowError('发送助手没有返回有效的独立进程回执') from None
         if data.get('request_id') != request_id:raise core.WorkflowError('发送助手回执不属于本次请求')
         if data.get('ok') is not True:raise core.WorkflowError(data.get('error','发送助手执行失败'))
@@ -125,6 +126,8 @@ def setup_permissions():
     Launching requests the OS dialogs; it does not grant permission or print.
     The caller should later re-run capability to observe the user's OS choices.
     """
+    if sys.platform != 'darwin':
+        raise core.WorkflowError('此发送助手使用 macOS 系统接口。Windows 请按 docs/WINDOWS.md 交接到官方 Studio。')
     _verify_bundle()
     subprocess.run(['/usr/bin/open','-n','-a',str(_bundle_path()),'--args','request-permissions'],
                    check=True,capture_output=True,text=True,timeout=10)
@@ -150,6 +153,10 @@ def _job_supported(job):
 
 def capability(pid=None, jid=None):
     """Read-only live capability, optionally constrained to an exact job."""
+    if sys.platform != 'darwin':
+        message = 'Windows 使用官方 Bambu Studio 交接流程。核对具体任务并记录批准后，在 Studio 中确认发送，步骤见 docs/WINDOWS.md。'
+        return {'available': False, 'setup_supported': False, 'message': message,
+                'blockers': [message], 'transport': 'bambu_studio_manual'}
     blockers = []
     try:
         observed = _run('probe', timeout=10)
@@ -293,6 +300,8 @@ def _dispatch_impl(pid,jid,phase):
 
 
 def dispatch(pid,jid):
+    if sys.platform != 'darwin':
+        raise BeforeSendError('请按 docs/WINDOWS.md 使用官方 Studio 交接流程')
     phase={'final_helper_invoked':False,'reservation_entered':False}
     try:
         return _dispatch_impl(pid,jid,phase)

@@ -301,7 +301,7 @@ def prepare(pid):
         lines += [f"- 照片：{x.get('path')}；模型SHA256：{x.get('artifact_sha256')}；配置SHA256：{x.get('profile_sha256') or '不适用/待填'}" for x in record.get('photos', [])]
         lines += ["", "## 核对结果", ""]
         lines += [f"- {x['label']} · {x['id']}：{x['reason']}" for x in result["checks"]]
-        (out / "review.md").write_text("\n".join(lines) + "\n")
+        (out / "review.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
         lines = ["# 公开描述草稿 · 待审", "", str(record.get("title") or "【待填标题】"), "", "## 来源与署名", ""]
         for src in record.get("sources", []):
             lic = src.get("license", {})
@@ -316,7 +316,7 @@ def prepare(pid):
                   *["- 未验证：" + x for x in record.get("validation", {}).get("unverified", [])],
                   "", "## 拟发布许可", f"{record.get('output_license', {}).get('name', '【待核实】')} {record.get('output_license', {}).get('url', '')}",
                   "", "上传确认必须独立取得。此资料包、设计确认、打印确认均不授权公开上传或参加独家/商业计划。"]
-        (out / "description-draft.md").write_text("\n".join(lines) + "\n")
+        (out / "description-draft.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
         if check(pid)['fingerprint'] != result['fingerprint']:
             raise core.WorkflowError('Publication files changed during preparation; packet is incomplete and must not be used')
         core.write_json(out / "manifest.json", {"id": release_id, "fingerprint": result["fingerprint"],
