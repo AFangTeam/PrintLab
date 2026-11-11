@@ -1,0 +1,30 @@
+name: 安装或使用问题
+description: 提供环境与复现步骤，帮助定位复刻流程中的缺口
+title: "[问题] "
+body:
+  - type: input
+    id: version
+    attributes:
+      label: PrintLab 版本
+      description: Release 标签或提交号；从 ZIP 还是 git 安装
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 运行环境
+      description: 系统版本、Python/Node、Agent 宿主；涉及打印时填写机型、固件、Studio、喷嘴与材料。不要填写访问码、API key、序列号或私人网络地址。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 实际操作与结果
+      description: 从哪一步开始、执行什么命令、预期是什么、实际结果是什么；附脱敏错误和截图。
+    validations:
+      required: true
+  - type: textarea
+    id: dispatch
+    attributes:
+      label: 是否已经尝试发送
+      description: 若涉及打印，说明未发送、发送过一次、或结果未知。结果未知时先对账，不重复点击发送。

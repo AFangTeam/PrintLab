@@ -55,7 +55,7 @@ from printlab import prepared, slicer_guard
 REAL_ARCHIVE_CHECK = slicer_guard.assert_safe_archive
 
 
-def test_prepared_check_uses_real_public_inspector(setup, monkeypatch):
+def configure_prepared(setup, monkeypatch):
     p, jd, job, device, unused_inspector, write_archive, settings = setup
     templates = {key: 'synthetic official template ' + key for key in slicer_guard.FIELDS}
     settings.update(templates)
@@ -84,3 +84,57 @@ def test_prepared_check_uses_real_public_inspector(setup, monkeypatch):
     assert next(row for row in report['checks'] if row['id'] == 'gcode')['status'] == 'pass'
     assert not (jd / 'approval.json').exists()
     assert not (jd / 'dispatch.json').exists()
+
+
+def test_prepared_check_uses_real_public_inspector(setup, monkeypatch):
+    configure_prepared(setup, monkeypatch)
+
+
+def test_workbench_api_through_official_reservation_with_real_inspection(setup, monkeypatch):
+    import sys
+    import uuid
+    from fastapi.testclient import TestClient
+    from printlab.api import app
+    from printlab import bambuddy, studio_bridge, workbench
+    configure_prepared(setup, monkeypatch)
+    p, jd, job, device, *_ = setup
+    original_get = device.get
+    device.close = lambda: None
+    device.get = lambda path: {'serial_number': 'SYNTHETIC'} if path == 'printers/7' else original_get(path)
+    monkeypatch.setattr(bambuddy, 'Client', lambda **kw: device)
+    monkeypatch.setattr(workbench, '_launch', workbench._run)
+    # GUI is the simulated boundary. All file/preflight/approval/reservation logic is real.
+    monkeypatch.setattr(studio_bridge, 'capability', lambda *a: {'available': True, 'message': 'Simulated GUI'})
+    monkeypatch.setattr(studio_bridge, '_open_prepared', lambda *a: (123, {'sha256':'synthetic-screenshot'}, {}))
+    monkeypatch.setattr(studio_bridge, '_studio_serial_matches', lambda *a: True)
+    sends = []
+    def helper(command, *args, **kwargs):
+        assert command == 'send-once'
+        sends.append(command)
+        assert core.read_json(jd / 'dispatch.json')['command_sent'] is False
+        return {'command_sent': True, 'executed': False}
+    monkeypatch.setattr(studio_bridge, '_run', helper)
+    # Do not simulate acceptance: an unavailable observation must remain unknown.
+    monkeypatch.setattr(bambuddy, 'reconcile', lambda *a: {'matching_task':False,'fresh':True,'device_state':'FINISH'})
+    client = TestClient(app, base_url='http://127.0.0.1:8018')
+    token = client.get('/api/prepared/session').json()['csrf_token']
+    headers = {'origin':'http://127.0.0.1:8018','x-printlab-csrf':token}
+    checked = client.post('/api/prepared/P001/Jone/check', headers=headers)
+    assert checked.status_code == 200, checked.text
+    assert checked.json()['ready'], checked.text
+    request = {'check_token':checked.json()['check_token'], 'plate_clear':True, 'request_id':str(uuid.uuid4())}
+    started = client.post('/api/prepared/P001/Jone/start', headers=headers, json=request)
+    assert started.status_code == 202, started.text
+    operation = client.get('/api/prepared/operations/' + started.json()['id']).json()
+    if sys.platform != 'darwin':
+        assert operation['state'] == 'blocked', operation
+        assert not sends
+        assert not (jd / 'dispatch.json').exists()
+        return
+    assert operation['state'] == 'submitted', operation
+    assert sends == ['send-once']
+    assert core.read_json(jd / 'official-inspection.json')['receipt']['evidence'] == 'file-only'
+    assert core.read_json(jd / 'dispatch.json')['command_sent'] is True
+    again = client.post('/api/prepared/P001/Jone/start', headers=headers, json=request)
+    assert again.json()['id'] == started.json()['id']
+    assert sends == ['send-once']
