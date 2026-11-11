@@ -46,3 +46,38 @@ def test_private_directory_and_unicode_roundtrip(tmp_path):
 def test_host_virtual_environment_path(tmp_path):
     expected = 'Scripts/python.exe' if sys.platform == 'win32' else 'bin/python'
     assert platforms.venv_python(tmp_path) == tmp_path / expected
+
+
+def test_windows_documented_launchers():
+    import socket
+    import time
+    import urllib.request
+    import pytest
+
+    if sys.platform != 'win32':
+        pytest.skip('Windows PowerShell entry points')
+    root = Path(__file__).resolve().parents[2]
+    cli = root / 'Harness/bin/printlab.ps1'
+    result = subprocess.check_output(['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass',
+                                      '-File', str(cli), 'context'], cwd=root, timeout=30)
+    assert json.loads(result)['missing'] == []
+    with socket.socket() as listener:
+        listener.bind(('127.0.0.1', 0))
+        port = listener.getsockname()[1]
+    process = subprocess.Popen(['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass',
+                                '-File', str(root / 'scripts/start.ps1'), '--port', str(port)],
+                               cwd=root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        for attempt in range(100):
+            assert process.poll() is None, 'PowerShell server exited early'
+            try:
+                with urllib.request.urlopen(f'http://127.0.0.1:{port}/api/health', timeout=1) as response:
+                    assert json.load(response)['ok']
+                break
+            except OSError:
+                time.sleep(.2)
+        else:
+            pytest.fail('PowerShell server failed to become healthy')
+    finally:
+        subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'], capture_output=True)
+        process.wait(timeout=15)
