@@ -34,6 +34,8 @@ Python 版本不够时，安装 Python 3.11 或更新版，用绝对路径运行
 
 ## 连接 Bambuddy 和打印机
 
+开始前完成 [首次配置访谈](FIRST_RUN.md)。
+
 1. 使用者从 Bambuddy 原项目独立安装，按上游说明运行服务并添加自己的打印机。它管理设备连接、库存和历史。
 2. 在 Bambuddy 设置中创建只读 API key，读取其打印机 ID。写入 `Runtime/private/bambuddy.json` 的 `read_api_key`，保持文件权限 600。需要实际发送时，才配置具有相应权限的 `write_api_key`。
 3. 编辑 `Runtime/config.json`，填写 `bambuddy_url` 和 `printer_id`。默认 URL 是 `http://127.0.0.1:8017`，应按自己实际安装的地址调整。

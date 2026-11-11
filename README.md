@@ -12,6 +12,8 @@ PrintLab 是阿方（Eric）在 E41 视频中使用的 3D 打印工作台与协�
 
 > 请帮我安装 https://github.com/AFangTeam/PrintLab 。先读 README.md、AGENTS.md 和 docs/AGENT_START.md，在本机建立长期工作空间，启动工作台并运行入门验收。帮我建立 Sara · 3D 打印顾问和 Mike · 工作流设计师两个聊天，全部绑定同一工作空间，记录实际建立状态。第一件作品确定后再建立任务小组。第三方工具从原项目独立安装。需要设备信息、登录或系统权限时告诉我具体操作。最后给我工作空间路径、工作台地址、角色入口、验证结果和下一步。
 
+仓库内提供原创 [PrintLab Skill](.agents/skills/printlab/SKILL.md)。支持仓库 `.agents/skills` 的 Agent 可在此工作空间加载；其他宿主按自身技能安装规则安装该目录，技能仍需指向实际工作台。首次设备信息按 [配置访谈](docs/FIRST_RUN.md) 收集。
+
 观众的聊天、网页操作与分工示例见 [交互指南](docs/GETTING_STARTED.md)。Agent 的执行步骤与完成标准见 [接手指南](docs/AGENT_START.md)。
 
 想自己安装，可以使用 Python 3.11+ 与 Node.js 22+，在终端执行以下命令。

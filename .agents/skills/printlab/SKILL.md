@@ -1,0 +1,21 @@
+---
+name: printlab
+description: 安装或使用 PrintLab 3D 打印工作台，接续作品的设计、材料、切片、待打印任务和实物反馈。用于用户要求配置 PrintLab、让 Agent 设计可打印作品或接续已有 PrintLab 项目时。
+license: PolyForm Noncommercial 1.0.0; see the PrintLab repository LICENSE.md and NOTICE.txt.
+---
+
+需要本机文件与终端能力；工作台支持 macOS 和 Windows。CAD、设备连接及发送支持按实际安装和机型核验。
+
+找到用户实际的 PrintLab 根目录，特征为 AGENTS.md、Harness/printlab 和 Context/workflow.md。当前目录属于已有工作空间时接续它；不要创建第二份项目库。若技能单独安装而工作台尚未安装，从 https://github.com/AFangTeam/PrintLab 的明确 Release 开始，记录版本，按其 README 安装。
+
+所有下列路径相对实际工作台根目录，而非技能安装目录。
+
+- 首次安装：读取 README.md、AGENTS.md、docs/AGENT_START.md、docs/FIRST_RUN.md。先识别系统和缺少的前提，运行对应 setup/start 脚本；外部工具从原作者独立安装。不要假定 ChatGPT 有本机执行或聊天管理能力。
+- 开始设计或接续：读取 Context/profile.md、Context/workflow.md、设备档案；运行当前 CLI 的 --help 和 context，按 project.json 的 latest_session 继续原项目。新作品先了解用途、尺寸、设备、材料和验收标准。
+- 外形、CAD、切片：按 Context/image-to-print.md 和 Context/cad-master-design.md 继承已选方案；真实源模型导出预览，关键接口与实测独立核对。依据当前机器比较打印方向、材料、支撑、分盘及完整工时。
+- 打印：先读 docs/PRINTING.md。只通过工作台/CLI 的统一批准和发送入口，绑定具体模型版本、切片文件、设备、材料与有效清板确认。安装或设计不授权打印。结果未知先对账，不自动重发；不借第三方插件绕过 PrintLab 检查。
+- 交接：用 CLI handoff 保存完成项、当前版本、证据、未知项与下一步，再通过 context 读回。设备已结束不等于实物合格。
+
+Mac CLI：`./Harness/bin/printlab`。Windows CLI：`powershell -NoProfile -ExecutionPolicy Bypass -File .\Harness\bin\printlab.ps1`。先查当前帮助再选择参数。
+
+报告实际工作空间、启动地址、工具版本、已验证能力和下一步。区分软件实测、模拟设备测试、实机验证；缺少能力应报告具体安装或配置步骤，不写成已完成。

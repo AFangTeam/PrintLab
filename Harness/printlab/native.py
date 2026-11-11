@@ -39,6 +39,9 @@ def _terminate_group(proc):
 
 
 def run_client(jd, job, mode, approval=None, *, timeout=None):
+    if mode == "inspect":
+        from .inspection import inspect
+        return inspect(jd, job, timeout=timeout or 90)
     client_path = core.ROOT / "Harness/native-client.mjs"
     if not client_path.is_file():
         raise core.WorkflowError("原生适配器尚未独立安装。请按 docs/PRINTING.md 使用官方 Bambu Studio 发送流程。")

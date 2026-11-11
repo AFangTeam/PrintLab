@@ -25,11 +25,13 @@ def main():
     python = environment / ('Scripts/python.exe' if sys.platform == 'win32' else 'bin/python')
     if not python.is_file():
         run([sys.executable, '-m', 'venv', str(environment)])
-    run([str(python), '-m', 'pip', 'install', '-e', './Harness[test]'])
+    run([str(python), '-m', 'pip', 'install', '--require-hashes', '-r', 'scripts/requirements.lock'])
+    run([str(python), '-m', 'pip', 'install', '--no-deps', '-e', './Harness'])
     npm_command = [os.environ.get('COMSPEC', 'cmd.exe'), '/d', '/c', npm] if sys.platform == 'win32' else [npm]
     for arguments in (['ci'], ['run', 'build']):
         run([*npm_command, *arguments], ROOT / 'Harness/studio')
     run([str(python), '-X', 'utf8', 'scripts/init_workspace.py'])
+    run([str(python), '-X', 'utf8', 'scripts/install_inspector.py'])
     print('PrintLab installed. Run scripts/start.ps1 on Windows or bash scripts/start.sh on macOS.')
 
 
