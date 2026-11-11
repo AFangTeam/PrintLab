@@ -10,6 +10,8 @@
 
 ## 下载和安装
 
+先识别操作系统。Windows 使用 `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup.ps1` 安装，使用同样方式执行 `scripts/start.ps1` 启动。以下 Bash 示例中的 `./Harness/bin/printlab` 在 PowerShell 中替换为 `powershell -NoProfile -ExecutionPolicy Bypass -File .\Harness\bin\printlab.ps1`，`Runtime/venv/bin/python` 替换为 `Runtime/venv/Scripts/python.exe`。Windows 完整步骤见 [Windows 指南](WINDOWS.md)。
+
 1. 检查当前目录和已有安装，找到已有工作空间就接续。新安装选择使用者指定路径，未指定时可采用 `~/PrintLab`，已有同名目录时先检查内容。
 2. 克隆 `https://github.com/AFangTeam/PrintLab.git`，或下载 Release 的 `PrintLab.zip`。将 Codex 工作空间指向实际仓库根目录。
 3. 检查 `python3 --version`、`node --version` 和 `npm --version`。需要 Python 3.11+、Node.js 22+。系统解释器较旧时，使用本机合适的解释器路径设置 `PRINTLAB_PYTHON`。缺少的基础运行时从官方来源安装。

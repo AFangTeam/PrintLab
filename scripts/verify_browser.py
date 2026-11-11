@@ -20,7 +20,7 @@ def main():
     output = ROOT / 'Runtime/verification'
     output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='PrintLab browser 中文 ') as temporary:
-        workspace = Path(temporary)
+        workspace = Path(temporary).resolve()
         for name in ('Context', 'config', 'Templates'):
             shutil.copytree(ROOT / name, workspace / name)
         (workspace / 'Harness/studio').mkdir(parents=True)
@@ -59,13 +59,11 @@ def main():
                 page.goto(base)
                 page.get_by_role('heading', name='把想法，做成实物。', exact=True).wait_for()
                 checked = []
-                for route, title in [('projects', '项目'), ('prepared', '待打印'),
-                                     ('history', '打印历史'), ('favorites', '收藏'),
-                                     ('shop', '购物清单'), ('library', '资料'), ('device', '设备与材料')]:
+                for route, title in [('projects', '项目图册'), ('prepared', '待打印'),
+                                     ('history', '每一次打印，都在这里。'), ('favorites', '灵感收藏'),
+                                     ('shop', '购物清单'), ('library', '资料与经验'), ('device', '设备与材料')]:
                     page.goto(base + '/#/' + route)
-                    page.locator('main').wait_for()
-                    page.wait_for_timeout(300)
-                    assert title in page.locator('main').inner_text(), route
+                    page.get_by_role('heading', name=title, exact=True).wait_for()
                     checked.append(route)
                 page.goto(base + '/#/projects/' + project['id'])
                 page.get_by_role('heading', name='Windows 中文工作流验收', exact=True).wait_for()

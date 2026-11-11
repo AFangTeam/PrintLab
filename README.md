@@ -4,7 +4,7 @@
 
 把一个想法，接着做成一件拿得起来的东西。
 
-PrintLab 是阿方（Eric）在 E41 视频中使用的 3D 打印工作台与协作流程，面向 **Mac + Codex + 拓竹打印机**。你描述需求，Codex 协助选外形、建立模型、比较切片，再把版本、材料、打印记录和实物反馈保存在同一个工作空间。
+PrintLab 是阿方（Eric）在 E41 视频中使用的 3D 打印工作台与协作流程，面向 **Mac / Windows + Codex + 拓竹打印机**。你描述需求，Codex 协助选外形、建立模型、比较切片，再把版本、材料、打印记录和实物反馈保存在同一个工作空间。
 
 ## 从这里开始
 
@@ -35,6 +35,15 @@ bash scripts/setup.sh
 bash scripts/start.sh
 ```
 
+Windows 用户在 PowerShell 中运行以下命令。安装 Python 3.11+ 和 Node.js 22+ 后，打开仓库目录。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start.ps1
+```
+
+Windows 的工具路径、验证命令和官方 Studio 交接见 [Windows 指南](docs/WINDOWS.md)。
+
 ## 这支队伍怎样配合
 
 - **Sara · 3D 打印顾问** 了解你的设备、材料和常见故障，帮助核对配件与耗材。购物清单可以跨项目汇总。实际加购物车由你授权后，交给具备浏览器操作能力的 Codex 完成。
@@ -59,9 +68,9 @@ bash scripts/start.sh
 
 新外形默认先选单张方案，再从同一方案的四套三视图中选一套。小改动按影响范围处理，已有决定接续使用。Text-to-CAD 提供建模和查看能力，尺寸、接口和实际装配仍逐项检查。完整步骤在 [工作流](Context/workflow.md)。
 
-## 首版支持范围
+## 支持范围
 
-macOS 14+，推荐 Apple Silicon。通用工作台可独立启动，设备状态与历史依赖单独安装的 Bambuddy。发布版的自动发送助手对应 **X2D、中文 Bambu Studio 02.08.02.61、0.4 mm、单主料 AMS、左主喷嘴、纹理 PEI 单盘**。其他机型、软件版本和多材料路线需要 Codex 按现场情况核对，详见 [兼容性与打印](docs/PRINTING.md)。
+Mac 使用 macOS 14+，推荐 Apple Silicon。Windows 提供原生 PowerShell 安装、命令行与浏览器工作台。通用工作台可独立启动，设备状态与历史依赖单独安装的 Bambuddy。Mac 自动发送助手对应 **X2D、中文 Bambu Studio 02.08.02.61、0.4 mm、单主料 AMS、左主喷嘴、纹理 PEI 单盘**。其他机型、软件版本和多材料路线需要 Codex 按现场情况核对，详见 [兼容性与打印](docs/PRINTING.md)。
 
 本仓库提供工作台源码、原创流程文档、角色提示词和空项目模板。第三方项目、模型权重、Bambu 软件和插件从各自官方来源独立获取。你自己的作品保存在本机 `Project/`。第三方来源及职责见 [依赖说明](docs/DEPENDENCIES.md)。
 

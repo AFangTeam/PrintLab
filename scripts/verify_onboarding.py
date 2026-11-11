@@ -23,7 +23,7 @@ def run_json(command, workspace, environment):
 def main():
     checks = []
     with tempfile.TemporaryDirectory(prefix='PrintLab onboarding ') as temporary:
-        workspace = Path(temporary)
+        workspace = Path(temporary).resolve()
         for name in ('Templates', 'config'):
             shutil.copytree(ROOT / name, workspace / name)
         (workspace / 'Context').mkdir()

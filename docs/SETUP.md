@@ -1,4 +1,6 @@
-# 在 Mac 安装 PrintLab
+# 安装 PrintLab
+
+Windows 使用 [Windows 安装与工作流](WINDOWS.md)。以下命令适用于 Mac。
 
 ## 准备
 
