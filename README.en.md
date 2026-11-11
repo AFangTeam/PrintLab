@@ -76,6 +76,10 @@ Mac requires macOS 14+, with Apple Silicon recommended. Windows provides native 
 
 The Mac automated sending helper targets **X2D, Chinese Bambu Studio 02.08.02.61, 0.4 mm, one main AMS filament, the left main nozzle, and one Textured PEI plate**. Other printers, software versions, and multi-material routes need verification in the user's environment. [Printing and compatibility](docs/PRINTING.md)
 
+Windows users hand prepared files to official Bambu Studio. The workbench's automatic sending helper is currently macOS-only. Setup independently downloads the pinned public file inspector on both systems, and `doctor` exercises it with a disposable file. Complete the printer and material questionnaire before creating a design. [First-run questionnaire](docs/FIRST_RUN.md) · [Connections](docs/CONNECTIONS.md)
+
+The repository includes a PrintLab Agent Skill at `.agents/skills/printlab/SKILL.md`. Open this workspace in a compatible agent and verify that it discovers the skill. Text-to-CAD is installed separately, with pinned-version commands and a modeling smoke test in the CAD guide. [CAD setup](docs/CAD_SETUP.md)
+
 This repository contains the workbench source, original workflow documents, role prompts, and empty project templates. Obtain third-party projects, model weights, Bambu applications, and plugins independently from their original authors. Your own objects live in the local `Project/` directory. [Third-party dependencies](docs/DEPENDENCIES.md)
 
 ## Development and verification
