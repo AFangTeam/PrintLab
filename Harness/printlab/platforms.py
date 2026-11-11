@@ -38,7 +38,7 @@ def protect_directory(path):
     if sys.platform != 'win32':
         path.chmod(0o700)
         return
-    identity = subprocess.check_output(['whoami', '/user', '/fo', 'csv', '/nh'], text=True)
+    identity = subprocess.check_output(['whoami', '/user', '/fo', 'csv', '/nh'], text=True, encoding='ascii', errors='replace')
     sid = next(csv.reader(identity.splitlines()))[1]
     subprocess.run(['icacls', str(path), '/inheritance:r', '/grant:r',
                     f'*{sid}:(OI)(CI)F', '*S-1-5-18:(OI)(CI)F'],

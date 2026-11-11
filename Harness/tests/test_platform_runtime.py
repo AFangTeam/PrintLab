@@ -33,7 +33,7 @@ def test_private_directory_and_unicode_roundtrip(tmp_path):
     core.write_json(file, {'说明': '中文数据'})
     assert core.read_json(file) == {'说明': '中文数据'}
     if sys.platform == 'win32':
-        command = '$a=Get-Acl -LiteralPath $env:PRINTLAB_TEST_PRIVATE; ConvertTo-Json -InputObject @($a.AreAccessRulesProtected, @($a.Access | ForEach-Object { $_.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value })) -Compress'
+        command = '$ErrorActionPreference="Stop"; $a=[System.IO.Directory]::GetAccessControl($env:PRINTLAB_TEST_PRIVATE); ConvertTo-Json -InputObject @($a.AreAccessRulesProtected, @($a.Access | ForEach-Object { $_.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value })) -Compress'
         result = subprocess.check_output(['powershell', '-NoProfile', '-Command', command], text=True, env={**os.environ, 'PRINTLAB_TEST_PRIVATE': str(directory)})
         protected, identities = json.loads(result)
         assert protected is True
