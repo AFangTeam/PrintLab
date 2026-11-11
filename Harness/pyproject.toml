@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "printlab-harness"
-version = "0.1.2"
+version = "0.2.0"
 license = {text = "PolyForm-Noncommercial-1.0.0"}
 authors = [{name = "AFangTeam / 阿方 (Eric)"}]
 description = "Local, file-first design and approved-print workflow"
