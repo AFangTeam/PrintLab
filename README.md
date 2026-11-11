@@ -1,5 +1,7 @@
 # PrintLab
 
+简体中文 · [English](README.en.md)
+
 把一个想法，接着做成一件拿得起来的东西。
 
 PrintLab 是阿方（Eric）在 E41 视频中使用的 3D 打印工作台与协作流程，面向 **Mac + Codex + 拓竹打印机**。你描述需求，Codex 协助选外形、建立模型、比较切片，再把版本、材料、打印记录和实物反馈保存在同一个工作空间。
@@ -20,6 +22,16 @@ bash scripts/start.sh
 ```
 
 打开 <http://127.0.0.1:8018>。安装程序生成空工作空间与本机配置，重复运行会保留已有配置。系统 Python 版本较旧时，用 `PRINTLAB_PYTHON=/你的/python3路径 bash scripts/setup.sh` 指定解释器。详细步骤见 [安装指南](docs/SETUP.md)。
+
+也可以从 [Release](https://github.com/AFangTeam/PrintLab/releases/latest) 下载 `PrintLab.zip`。解压得到 `PrintLab/` 文件夹，在 Codex 中打开，或执行以下命令。
+
+```bash
+curl -fL -o PrintLab.zip https://github.com/AFangTeam/PrintLab/releases/latest/download/PrintLab.zip
+unzip PrintLab.zip
+cd PrintLab
+bash scripts/setup.sh
+bash scripts/start.sh
+```
 
 ## 这支队伍怎样配合
 
