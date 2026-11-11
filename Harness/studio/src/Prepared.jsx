@@ -27,6 +27,7 @@ function SenderSetup(){
  useEffect(()=>{refresh()},[]);
  async function enable(){if(!topLevel||busy)return;setBusy(true);setError('');try{const session=await json('/api/prepared/session');const result=await json('/api/prepared/sender/enable',{method:'POST',headers:{'Content-Type':'application/json','X-PrintLab-CSRF':session.csrf_token},body:JSON.stringify({request_permissions:true})});setNotice(result.message||'请在 macOS 系统设置中检查并勾选 PrintLab发送助手，然后刷新权限状态。');setConfirm(false);await refresh()}catch(e){setError(`暂时无法启用发送助手：${e.message}`)}finally{setBusy(false)}}
  if(!cap&&!error)return null;
+ if(cap?.setup_supported===false)return <section className="sender-setup" aria-label="Windows 打印交接"><h2>通过官方 Studio 打印</h2><p>{cap.message}</p><a href="https://github.com/AFangTeam/PrintLab/blob/main/docs/WINDOWS.md" target="_blank" rel="noreferrer">查看 Windows 打印步骤</a></section>;
  if(cap?.available===true&&!cap?.setup_required&&!notice&&!error)return null;
  const permission=value=>value===true?'已授权':value===false?'待授权':'待核实';
  return <section className="sender-setup" aria-label="发送助手设置"><div className="sender-setup-title"><div><span className="section-eyebrow">一次性设置</span><h2>启用 PrintLab发送助手</h2></div></div>

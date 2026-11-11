@@ -25,7 +25,7 @@ def blender_worker(args):
     out = Path(args.output)
     if args.worker == 'build':
         namespace = runpy.run_path(args.source)
-        params = json.loads(Path(args.params).read_text())
+        params = json.loads(Path(args.params).read_text(encoding="utf-8"))
         result = namespace['build'](params)
         objects = [result] if isinstance(result, bpy.types.Object) else list(result)
         bpy.ops.object.select_all(action='DESELECT')
@@ -113,11 +113,11 @@ def main():
         raise ValueError('Revision already built; create a new revision instead of overwriting')
     out.mkdir(parents=True, exist_ok=True)
     preview.mkdir(parents=True, exist_ok=True)
-    config = json.loads((root / 'Runtime/config.json').read_text())
+    config = json.loads((root / 'Runtime/config.json').read_text(encoding="utf-8"))
     blender = config.get('blender_path')
     if not blender or not Path(blender).is_file():
         raise ValueError('Blender is required for verified model previews')
-    params = json.loads((src / 'params.json').read_text())
+    params = json.loads((src / 'params.json').read_text(encoding="utf-8"))
     inputs = {str(f.relative_to(src)): digest(f) for f in sorted(src.rglob('*'))
               if f.is_file() and f.suffix != '.blend' and '__pycache__' not in f.parts}
     version = {}
@@ -150,7 +150,7 @@ def main():
            '--source', str(src/'model.py'), '--params', str(src/'params.json'),
            '--output', str(out), '--preview', str(preview)]
     run = subprocess.run(cmd, capture_output=True, text=True, timeout=240)
-    (preview / 'render.log').write_text(run.stdout + run.stderr)
+    (preview / 'render.log').write_text(run.stdout + run.stderr, encoding="utf-8")
     if run.returncode:
         raise RuntimeError('Blender failed; see ' + str(preview / 'render.log'))
     after_inputs = {str(f.relative_to(src)): digest(f) for f in sorted(src.rglob('*'))
@@ -174,8 +174,8 @@ def main():
             'verification_limits':['No full wall-thickness or mechanical load analysis','Physical fit and print quality require a test print'],
             'tools':version,'source_sha256':{str(f.relative_to(project)):digest(f) for f in sorted(src.rglob('*')) if f.is_file() and '__pycache__' not in f.parts},
             'artifacts':{str(f.relative_to(project)):digest(f) for d in [out,preview] for f in sorted(d.glob('*')) if f.is_file()}}
-    (out / 'build.json').write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
-    (preview / 'dimensions.json').write_text(json.dumps({'dimensions_mm':data['dimensions_mm'],'checks':checks},indent=2)+'\n')
+    (out / 'build.json').write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n', encoding="utf-8")
+    (preview / 'dimensions.json').write_text(json.dumps({'dimensions_mm':data['dimensions_mm'],'checks':checks},indent=2)+'\n', encoding="utf-8")
     print(json.dumps(data,ensure_ascii=False))
     if not data['verified']:
         sys.exit(2)

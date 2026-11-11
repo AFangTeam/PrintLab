@@ -1,5 +1,22 @@
 # 验证记录
 
+## v0.2.0 Windows 与 Mac
+
+2026-11-11 在 GitHub 托管 Windows 虚拟机完成独立安装与验收，源码提交 `b5a87c3`。Windows Server 2022 使用 Python 3.11.9，Windows Server 2025 使用 Python 3.13.17，Node.js 22。两台机器各自完成以下检查。
+
+- PowerShell 安装入口、生产网页构建、CLI 入口和真实服务启动。
+- Python 测试各 **356 通过、20 跳过**。包含跨进程排他锁、中文文件读写、私人目录 DACL 和 Windows 官方 Studio 提示。
+- Node 离线检查各 **12 通过**。
+- 独立进程入门验收全部 5 组通过，验证建项目、分工、交接与下一进程接续。
+- Chromium 打开总览及七个工作台页面，创建并读取中文项目，在包含空格和中文的临时路径运行实际服务器，页面脚本错误为零。
+- 保存 JUnit XML、浏览器结果 JSON、桌面/窄屏截图和服务日志。查看对应 Windows job 与 Artifacts。[云端运行记录](https://github.com/AFangTeam/PrintLab/actions/runs/43027295139)
+
+本机 Mac 对相同源码运行 **368 通过、8 跳过**，Node 12 项通过。此前候选 `adc2619` 的 macOS 云端安装、入门验收与浏览器检查通过。其后的平台代码改动为 Windows DACL 设置与 Mac 专用命令在 Windows 上的错误提示。[Mac 云端记录](https://github.com/AFangTeam/PrintLab/actions/runs/43026694159)
+
+Windows 的 20 项跳过包括 14 项 Mac 专用适配检查，以及 6 项实际设备、已安装切片配置与私人模型样本检查。Mac 的 8 项跳过包括这 6 项与 2 项 Windows 专用检查。
+
+Windows 云端环境为 Server 2022/2025 x64。Windows 10/11 桌面、真实 CAD/切片软件、打印机连接与实体打印待现场验证。自动 Studio 发送助手适用于 macOS，Windows 使用官方 Studio 界面交接。官方 `submit` 预约接口依赖的独立原生检查客户端尚未完成 Windows 安装验收。浏览器合成项目验收覆盖工作台与文件交接，宿主聊天创建仍按实际能力确认。
+
 v0.1.2 验证日期为 2026-11-11。验收使用同一台 Apple Silicon Mac 的全新隔离目录、独立 Python 虚拟环境与独立工作台端口，Python 3.13、Node.js 22.23.2。
 
 ## v0.1.2 已完成

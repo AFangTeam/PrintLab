@@ -12,7 +12,7 @@ import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
 
-from . import core, three_mf
+from . import core, three_mf, platforms
 
 
 def inspect(path: Path, filament_count: int | None = None) -> dict:
@@ -85,7 +85,7 @@ def export(pid, revision, machine, process, filaments, bed_type):
             raise core.WorkflowError('Export requires complete resolved profiles')
     if 'X2D' not in str(core.read_json(profiles[0]).get('printer_model', '')).upper():
         raise core.WorkflowError('Machine profile must target X2D')
-    slicer = Path(core.config().get('slicer_path', '/Applications/BambuStudio.app/Contents/MacOS/BambuStudio'))
+    slicer = Path(core.config().get('slicer_path', platforms.tool_defaults()['slicer_path']))
     if not slicer.is_file():
         raise core.WorkflowError('Bambu Studio executable not available')
     output = out_dir / 'bambu-project.3mf'

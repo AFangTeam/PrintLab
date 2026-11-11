@@ -24,7 +24,7 @@ class ProfileResolver:
         for p in sorted(self.directory.glob('*.json')):
             if p.is_symlink():
                 raise ValueError('Symlink profile is not allowed')
-            data = json.loads(p.read_text())
+            data = json.loads(p.read_text(encoding="utf-8"))
             for name in {p.stem, data.get('name')} - {None, ''}:
                 if name in self.files and self.files[name] != p:
                     raise ValueError('Ambiguous profile name: '+name)
@@ -40,7 +40,7 @@ class ProfileResolver:
         if name in self.cache:
             return dict(self.cache[name])
         path = self.files[name]
-        data = json.loads(path.read_text())
+        data = json.loads(path.read_text(encoding="utf-8"))
         self.sources[str(path)] = {'path':str(path),'sha256':digest(path)}
         parent = data.get('inherits')
         if parent and not isinstance(parent,str):
@@ -65,9 +65,9 @@ def write_candidate(profile, output):
     resolver=ProfileResolver(profile.parent)
     result=resolver.resolve(profile.stem)
     output.parent.mkdir(parents=True,exist_ok=True)
-    output.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+    output.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n', encoding="utf-8")
     receipt={'schema_version':1,'profile':str(profile),'output_sha256':digest(output),'merge_order':'inherits -> ordered includes -> own explicit values','source_files':list(resolver.sources.values()),'scope':'configuration candidate, not print approval or physical validation','source_reference':'https://github.com/bambulab/BambuStudio/blob/master/src/libslic3r/PresetBundle.cpp'}
-    output.with_suffix('.sources.json').write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+'\n')
+    output.with_suffix('.sources.json').write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+'\n', encoding="utf-8")
     return receipt
 
 

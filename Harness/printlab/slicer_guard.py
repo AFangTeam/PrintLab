@@ -5,17 +5,19 @@ import re
 import zipfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from . import core, platforms
 
 FIELDS = ('machine_start_gcode', 'machine_end_gcode', 'change_filament_gcode',
           'layer_change_gcode', 'time_lapse_gcode')
-OFFICIAL_MACHINE = Path('/Applications/BambuStudio.app/Contents/Resources/profiles/BBL/machine/Bambu Lab X2D 0.4 nozzle.json')
+OFFICIAL_MACHINE = None  # Optional override for isolated verification fixtures.
 
 
 def official_templates():
     spec = importlib.util.spec_from_file_location('printlab_official_resolver', Path(__file__).parents[1] / 'resolve_bambu_profiles.py')
     resolver = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(resolver)
-    values = resolver.ProfileResolver(OFFICIAL_MACHINE.parent).resolve(OFFICIAL_MACHINE.stem)
+    machine = OFFICIAL_MACHINE or platforms.profile_directory(core.config()) / 'BBL/machine/Bambu Lab X2D 0.4 nozzle.json'
+    values = resolver.ProfileResolver(machine.parent).resolve(machine.stem)
     return {key: values[key] for key in FIELDS}
 
 

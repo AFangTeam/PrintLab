@@ -4,13 +4,13 @@ English · [简体中文](README.md)
 
 Turn an idea into something you can hold.
 
-PrintLab is the 3D-printing workbench and collaboration workflow AFang (Eric) uses in his E41 video. It is designed for **Mac + Codex + Bambu Lab printers**. Describe what you want to make, then work with Codex on the design, CAD, slicing comparisons, materials, print records, and physical feedback in one workspace.
+PrintLab is the 3D-printing workbench and collaboration workflow AFang (Eric) uses in his E41 video. It is designed for **Mac / Windows + Codex + Bambu Lab printers**. Describe what you want to make, then work with Codex on the design, CAD, slicing comparisons, materials, print records, and physical feedback in one workspace.
 
 ## Get started
 
 Give the repository URL and this prompt to Codex or another agent with local terminal and filesystem access.
 
-> Install https://github.com/AFangTeam/PrintLab on this Mac. Read README.md, AGENTS.md, and docs/AGENT_START.md. Create a persistent workspace, start the workbench, and run the onboarding verification. Create Sara, the 3D-printing advisor, and Mike, the workflow designer, as chats sharing this workspace, and record their actual setup status. Create a task-group chat when I choose my first object. Install third-party tools independently from their original projects. Tell me the specific actions needed for device information, login, or system permissions. Report the workspace path, workbench URL, role entry points, verified results, and next steps.
+> Install https://github.com/AFangTeam/PrintLab on this computer. Read README.md, AGENTS.md, and docs/AGENT_START.md. Create a persistent workspace, start the workbench, and run the onboarding verification. Create Sara, the 3D-printing advisor, and Mike, the workflow designer, as chats sharing this workspace, and record their actual setup status. Create a task-group chat when I choose my first object. Install third-party tools independently from their original projects. Tell me the specific actions needed for device information, login, or system permissions. Report the workspace path, workbench URL, role entry points, verified results, and next steps.
 
 The interaction guide explains what happens in chat, what happens in the web workbench, and how roles exchange project context. The agent guide provides executable setup steps and completion checks. Both guides currently use Simplified Chinese. [User interaction guide](docs/GETTING_STARTED.md) · [Agent onboarding guide](docs/AGENT_START.md)
 
@@ -36,6 +36,15 @@ bash scripts/start.sh
 ```
 
 The detailed installation and workflow reference pages are currently in Simplified Chinese. [Installation guide](docs/SETUP.md)
+
+On Windows, install Python 3.11+ and Node.js 22+, open PowerShell in the repository folder, and run these commands.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start.ps1
+```
+
+The Windows guide covers tool paths, verification, and official Studio handoff. [Windows guide](docs/WINDOWS.md)
 
 ## Three collaboration roles
 
@@ -63,9 +72,9 @@ For a new shape, the default workflow first selects one concept image, then one 
 
 ## Supported environment
 
-Requires macOS 14+. Apple Silicon is recommended. The general workbench runs independently. Device status and print history use a separately installed Bambuddy service.
+Mac requires macOS 14+, with Apple Silicon recommended. Windows provides native PowerShell setup, command-line tools, and the browser workbench. The general workbench runs independently. Device status and print history use a separately installed Bambuddy service.
 
-The automated sending helper targets **X2D, Chinese Bambu Studio 02.08.02.61, 0.4 mm, one main AMS filament, the left main nozzle, and one Textured PEI plate**. Other printers, software versions, and multi-material routes need verification in the user's environment. [Printing and compatibility](docs/PRINTING.md)
+The Mac automated sending helper targets **X2D, Chinese Bambu Studio 02.08.02.61, 0.4 mm, one main AMS filament, the left main nozzle, and one Textured PEI plate**. Other printers, software versions, and multi-material routes need verification in the user's environment. [Printing and compatibility](docs/PRINTING.md)
 
 This repository contains the workbench source, original workflow documents, role prompts, and empty project templates. Obtain third-party projects, model weights, Bambu applications, and plugins independently from their original authors. Your own objects live in the local `Project/` directory. [Third-party dependencies](docs/DEPENDENCIES.md)
 

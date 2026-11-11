@@ -20,10 +20,10 @@ def main():
     if not address.is_private or address.is_loopback or address.is_multicast:
         parser.error('Use the private LAN address shown on the actual printer')
     private = ROOT / 'Runtime/private'
-    saved = json.loads((private / 'printer-discovery.json').read_text())
-    admin = json.loads((private / 'bambuddy-admin.json').read_text())
+    saved = json.loads((private / 'printer-discovery.json').read_text(encoding="utf-8"))
+    admin = json.loads((private / 'bambuddy-admin.json').read_text(encoding="utf-8"))
     cfgpath = ROOT / 'Runtime/config.json'
-    cfg = json.loads(cfgpath.read_text())
+    cfg = json.loads(cfgpath.read_text(encoding="utf-8"))
     with httpx.Client(base_url=cfg['bambuddy_url'] + '/api/v1/', trust_env=False, timeout=20) as c:
         result = c.post('auth/login', json=admin); result.raise_for_status()
         c.headers['Authorization'] = 'Bearer ' + result.json()['access_token']
@@ -37,16 +37,16 @@ def main():
             result = c.post('printers/', json={'name':'PrintLab X2D','model':'X2D','ip_address':args.ip,
                 'serial_number':saved['serial'],'access_code':saved['access_code'],'auto_archive':True})
             result.raise_for_status(); printer = result.json()
-        cfg['printer_id'] = printer['id']; cfgpath.write_text(json.dumps(cfg,indent=2)+'\n')
+        cfg['printer_id'] = printer['id']; cfgpath.write_text(json.dumps(cfg,indent=2)+'\n', encoding="utf-8")
         saved['ip_address'] = args.ip
-        (private / 'printer-discovery.json').write_text(json.dumps(saved));os.chmod(private / 'printer-discovery.json',0o600)
+        (private / 'printer-discovery.json').write_text(json.dumps(saved), encoding="utf-8");os.chmod(private / 'printer-discovery.json',0o600)
         status = {}
         for _ in range(8):
             result = c.get(f"printers/{printer['id']}/status");result.raise_for_status();status=result.json()
             if status.get('connected'):break
             time.sleep(2)
         # Raw status may contain identifiers; keep it in the private area.
-        target = private / 'printer-first-status.json'; target.write_text(json.dumps(status,ensure_ascii=False,indent=2));os.chmod(target,0o600)
+        target = private / 'printer-first-status.json'; target.write_text(json.dumps(status,ensure_ascii=False,indent=2), encoding="utf-8");os.chmod(target,0o600)
         print(json.dumps({'registered':True,'printer_id':printer['id'],'connected':status.get('connected',False),
             'state':status.get('state'),'firmware_version':status.get('firmware_version'),
             'ams_count':len(status.get('ams') or []),'physical_print_performed':False},ensure_ascii=False))

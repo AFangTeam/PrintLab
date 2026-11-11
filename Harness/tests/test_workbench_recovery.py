@@ -31,7 +31,8 @@ def test_persistent_session_survives_server_memory_reset(isolated):
     second.cookies.set('printlab_session', sid)
     assert second.get('/api/prepared/session').json()['csrf_token'] == token
     assert second.get('/api/prepared/operations/' + record['id']).json()['state'] == 'unknown'
-    assert (isolated / 'Runtime/private/workbench-sessions.json').stat().st_mode & 0o777 == 0o600
+    if __import__('sys').platform != 'win32':
+        assert (isolated / 'Runtime/private/workbench-sessions.json').stat().st_mode & 0o777 == 0o600
 
 def test_boot_recovery_fails_closed(isolated):
     checking, dispatching = op('a'*32, 'checking'), op('b'*32, 'dispatching')

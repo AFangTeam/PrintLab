@@ -196,7 +196,7 @@ def main(argv=None):
         elif a.command == "taste":
             from . import taste
             if a.taste_command == "record":
-                result = taste.record(a.project, json.loads(Path(a.manifest).read_text()))
+                result = taste.record(a.project, json.loads(Path(a.manifest).read_text(encoding="utf-8")))
             else:
                 result = taste.summary(a.project, limit=0)
         elif a.command == "design-check":
@@ -294,7 +294,7 @@ def main(argv=None):
             elif a.shop_command == "confirm":
                 result = shop.confirm(a.project, a.quote, a.source, a.expect)
             elif a.shop_command == "sync":
-                result = shop.sync(a.project, json.loads(Path(a.file).read_text()), a.expect, a.source)
+                result = shop.sync(a.project, json.loads(Path(a.file).read_text(encoding="utf-8")), a.expect, a.source)
             elif a.shop_command == "stock":
                 existing = None if a.existing == "unknown" else int(a.existing)
                 result = shop.stock(a.item, existing, a.purchased, a.note, a.expect)

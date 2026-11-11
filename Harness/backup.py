@@ -26,6 +26,7 @@ import sqlite3
 import stat
 import time
 import uuid
+from printlab.platforms import protect_directory
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parent.parent
@@ -67,7 +68,7 @@ def private_dir(path: Path) -> None:
     path.mkdir(mode=0o700, parents=True, exist_ok=True)
     if not path.is_dir():
         raise BackupError(f"Not a directory: {path}")
-    path.chmod(0o700)
+    protect_directory(path)
     for candidate in missing:
         candidate.chmod(0o700)
 

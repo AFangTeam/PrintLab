@@ -8,6 +8,7 @@ import re
 import shutil
 import signal
 import subprocess
+import sys
 from pathlib import Path
 from . import core, bambuddy
 
@@ -18,6 +19,10 @@ TASK_UUID = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 
 def _terminate_group(proc):
     """Kill only this freshly created session, including Node/MCP/helper children."""
+    if sys.platform == 'win32':
+        subprocess.run(['taskkill', '/PID', str(proc.pid), '/T', '/F'], capture_output=True)
+        proc.communicate(timeout=TERMINATE_GRACE_SECONDS)
+        return
     def send(sig):
         try:
             os.killpg(proc.pid, sig)
@@ -55,9 +60,10 @@ def run_client(jd, job, mode, approval=None, *, timeout=None):
                "sha256": job["artifact_sha256"], "plate": job["plate"], "job_id": job["id"],
                "ams_mapping": job["mapping"]["ams_mapping"], "approval": approval, "cancelled_reprint": proof}
     env = {k: v for k, v in os.environ.items() if k not in {"NODE_OPTIONS", "NODE_PATH", "LD_PRELOAD"} and not k.startswith("DYLD_")}
+    process_options = {'creationflags': subprocess.CREATE_NEW_PROCESS_GROUP} if sys.platform == 'win32' else {'start_new_session': True}
     proc = subprocess.Popen([node, str(client_path)],
                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                            text=True, start_new_session=True, env=env)
+                            text=True, encoding='utf-8', env=env, **process_options)
     try:
         stdout, _stderr = proc.communicate(json.dumps(request), timeout=timeout or CLIENT_TIMEOUT_SECONDS)
     except (subprocess.TimeoutExpired, KeyboardInterrupt):

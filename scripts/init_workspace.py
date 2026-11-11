@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from printlab.platforms import venv_python, tool_defaults, protect_directory
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -24,17 +25,16 @@ def main():
                    'Library/Materials', 'Library/References', 'Library/Shopping',
                    'Library/Taste/Selections', 'Library/Prepared', 'Context'):
         (ROOT / folder).mkdir(parents=True, exist_ok=True)
-    (ROOT / 'Runtime/private').chmod(0o700)
+    protect_directory(ROOT / 'Runtime/private')
     for name in ('profile.md', 'taste.md', 'agent-policy.json', 'team.md'):
         destination = ROOT / 'Context' / name
         if not destination.exists():
             with destination.open('x', encoding='utf-8') as stream:
-                stream.write((ROOT / 'config' / (name + '.example')).read_text().replace('{{workspace_root}}', str(ROOT)))
+                stream.write((ROOT / 'config' / (name + '.example')).read_text(encoding="utf-8").replace('{{workspace_root}}', str(ROOT)))
     write_new(ROOT / 'Runtime/config.json', {
         'bambuddy_url': 'http://127.0.0.1:8017', 'printer_id': None,
-        'cad_python': str(ROOT / 'Runtime/venv/bin/python'),
-        'blender_path': '/Applications/Blender.app/Contents/MacOS/Blender',
-        'slicer_path': '/Applications/BambuStudio.app/Contents/MacOS/BambuStudio',
+        'cad_python': str(venv_python(ROOT / 'Runtime/venv')),
+        **tool_defaults(),
         'studio_printer_name': None, 'tailscale_ip': None,
     })
     write_new(ROOT / 'Runtime/private/bambuddy.json', {'read_api_key': '', 'write_api_key': ''}, private=True)
@@ -45,7 +45,7 @@ def main():
     })
     installed = ROOT / 'Library/Devices/X2D/installed.md'
     if not installed.exists():
-        installed.write_text('# 本机设备\n\n尚未连接。按 docs/SETUP.md 核对设备与耗材。\n')
+        installed.write_text('# 本机设备\n\n尚未连接。按 docs/SETUP.md 核对设备与耗材。\n', encoding="utf-8")
     print('工作空间已初始化，现有配置与项目已保留。')
 
 

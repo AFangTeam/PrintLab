@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import contextlib
 import datetime as dt
-import fcntl
+import portalocker
+from . import platforms
 import hashlib
 import json
 import os
@@ -67,11 +68,11 @@ def lock(name="workflow"):
     d = ROOT / "Runtime" / "locks"
     d.mkdir(parents=True, exist_ok=True)
     with (d / f"{name}.lock").open("a") as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
+        portalocker.lock(f, portalocker.LOCK_EX)
         try:
             yield
         finally:
-            fcntl.flock(f, fcntl.LOCK_UN)
+            portalocker.unlock(f)
 
 
 def config():
@@ -206,8 +207,8 @@ def is_current_attempt(p, job):
 def detail(pid):
     p = project_path(pid)
     data = summary(p)
-    data["brief"] = (p / "brief.md").read_text() if (p / "brief.md").exists() else ""
-    data["decisions"] = (p / "decisions.md").read_text() if (p / "decisions.md").exists() else ""
+    data["brief"] = (p / "brief.md").read_text(encoding="utf-8") if (p / "brief.md").exists() else ""
+    data["decisions"] = (p / "decisions.md").read_text(encoding="utf-8") if (p / "decisions.md").exists() else ""
     data["files"] = []
     for d in PROJECT_DIRS:
         for f in sorted((p / d).rglob("*")):
@@ -254,18 +255,18 @@ def new_project(name, kind="functional", brief="", summary_text=""):
             rel = source.relative_to(template)
             if rel.as_posix() not in {"brief.md", "decisions.md"} and rel.parts[0] not in PROJECT_DIRS:
                 continue
-            text = safe_path(template, rel.as_posix()).read_text().replace("{{project_name}}", name)
+            text = safe_path(template, rel.as_posix()).read_text(encoding="utf-8").replace("{{project_name}}", name)
             target = p / rel
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(text)
+            target.write_text(text, encoding="utf-8")
         if not (p / "brief.md").exists():
-            (p / "brief.md").write_text(f"# {name}\n\n待补充：用途、实测尺寸、材料与完成标准。\n")
+            (p / "brief.md").write_text(f"# {name}\n\n待补充：用途、实测尺寸、材料与完成标准。\n", encoding="utf-8")
         if brief:
             with (p / "brief.md").open("a") as f:
                 f.write("\n## 初始需求\n\n" + brief + "\n")
         if not (p / "decisions.md").exists():
-            (p / "decisions.md").write_text("# 已确认决定\n\n尚无设计或打印批准。\n")
-        (p / "Sessions" / "handoff.md").write_text("# 接手\n\n已建立项目。尚未建模、切片或批准打印。下一步：补齐需求。\n")
+            (p / "decisions.md").write_text("# 已确认决定\n\n尚无设计或打印批准。\n", encoding="utf-8")
+        (p / "Sessions" / "handoff.md").write_text("# 接手\n\n已建立项目。尚未建模、切片或批准打印。下一步：补齐需求。\n", encoding="utf-8")
         choice_example = template / "Review/taste-choice.example.json"
         if choice_example.is_file():
             write_json(p / "Review/taste-choice.example.json", read_json(safe_path(template, "Review/taste-choice.example.json")))
@@ -309,7 +310,7 @@ def context(pid=None):
         rel = p.relative_to(ROOT).as_posix()
         if p.is_file():
             result["loaded"].append(rel)
-            result["documents"].append({"path": rel, "sha256": digest(p), "text": p.read_text()[:24000]})
+            result["documents"].append({"path": rel, "sha256": digest(p), "text": p.read_text(encoding="utf-8")[:24000]})
         else:
             result["missing"].append(rel)
     if pid:
@@ -344,7 +345,7 @@ def build(pid, revision, engine):
         result = subprocess.run(command, capture_output=True, text=True, timeout=600)
         evidence = ROOT / "Runtime/evidence" / f"{pid}-{revision}-build.log"
         evidence.parent.mkdir(parents=True, exist_ok=True)
-        evidence.write_text(result.stdout + "\n" + result.stderr)
+        evidence.write_text(result.stdout + "\n" + result.stderr, encoding="utf-8")
         if result.returncode != 0 or not out.exists():
             raise WorkflowError(f"Model build failed; see {evidence}")
         manifest = read_json(out)
@@ -496,7 +497,7 @@ def slice_project(pid, machine, process, filaments, revision=None, plate=1, mapp
         raise WorkflowError("The single-model slice path supports plate 1 only")
     profiles = [Path(machine).resolve(), Path(process).resolve()] + [Path(x).resolve() for x in filaments]
     provenance = {}
-    official_profiles = Path("/Applications/BambuStudio.app/Contents/Resources/profiles").resolve()
+    official_profiles = platforms.profile_directory(config()).resolve()
     for profile in profiles:
         sidecar = profile.with_suffix(".sources.json")
         if sidecar.exists():
@@ -528,7 +529,7 @@ def slice_project(pid, machine, process, filaments, revision=None, plate=1, mapp
     startup_issues = slicer_guard.template_issues(machine_data)
     if startup_issues:
         raise WorkflowError('; '.join(startup_issues))
-    slicer = config().get("slicer_path", "/Applications/BambuStudio.app/Contents/MacOS/BambuStudio")
+    slicer = config().get("slicer_path", platforms.tool_defaults()["slicer_path"])
     if not Path(slicer).is_file():
         raise WorkflowError("Bambu Studio executable not available")
     with lock(read_json(p / "project.json")["id"]):
@@ -591,7 +592,7 @@ def slice_project(pid, machine, process, filaments, revision=None, plate=1, mapp
         write_json(jd / "job.json", job)
         try:
             r = subprocess.run(command, capture_output=True, text=True, timeout=900)
-            (jd / "slicing.log").write_text(r.stdout + "\n" + r.stderr)
+            (jd / "slicing.log").write_text(r.stdout + "\n" + r.stderr, encoding="utf-8")
             if r.returncode:
                 raise WorkflowError("Slicer returned a failure; inspect slicing.log")
             validate_3mf(out, plate)
@@ -785,7 +786,7 @@ def review(pid, note, outcome):
             if not any(j.get("state") == "awaiting_physical_review" and j.get("revision") == data.get("current_revision") for j in jobs):
                 raise WorkflowError("A confirmed completed print of the current revision is required before physical acceptance")
         stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:4]
-        (p / "Review" / f"{stamp}.md").write_text(f"# 实物复盘\n\n日期：{now()}\n结果：{outcome}\n\n{note}\n")
+        (p / "Review" / f"{stamp}.md").write_text(f"# 实物复盘\n\n日期：{now()}\n结果：{outcome}\n\n{note}\n", encoding="utf-8")
         data.update(status="completed" if outcome == "passed" else "needs_changes", updated_at=now())
         write_json(p / "project.json", data)
         return {"project_id": pid, "outcome": outcome}
@@ -820,17 +821,17 @@ def library():
                     continue
                 title = p.stem
                 if p.suffix == ".md":
-                    first = p.read_text().splitlines()
+                    first = p.read_text(encoding="utf-8").splitlines()
                     if first and first[0].startswith("# "):
                         title = first[0][2:]
                 rows.append({"path": rel, "title": title, "category": "/".join(p.relative_to(ROOT).parts[:3]), "url": "/api/documents/" + quote(rel, safe="/")})
     card = ROOT / "Library/Devices/X2D/installed.md"
-    return {"documents": rows, "device_card": card.read_text() if card.exists() else "本机配置尚未核验。"}
+    return {"documents": rows, "device_card": card.read_text(encoding="utf-8") if card.exists() else "本机配置尚未核验。"}
 
 
 def doctor():
     cfg = config()
-    required = {"builder": ROOT / "Harness/build_model.py", "slicer": Path(cfg.get("slicer_path", "/Applications/BambuStudio.app/Contents/MacOS/BambuStudio"))}
+    required = {"builder": ROOT / "Harness/build_model.py", "slicer": Path(cfg.get("slicer_path", platforms.tool_defaults()["slicer_path"]))}
     for k in ("cad_python", "blender_path"):
         required[k] = Path(cfg[k]) if cfg.get(k) else None
     return {"root": str(ROOT), "tools": {k: {"path": str(v) if v else None, "available": bool(v and v.is_file())} for k, v in required.items()}, "printer_configured": cfg.get("printer_id") is not None, "context": context().get("loaded"), "missing_context": context().get("missing")}

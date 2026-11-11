@@ -92,4 +92,4 @@ bpy.ops.wm.save_as_mainfile(filepath=str(folder / "candidate.blend"))
     "blend_sha256": hashlib.sha256((folder / "candidate.blend").read_bytes()).hexdigest(),
     "view_match": "approximate - concept perspective camera has not been calibrated",
     "views": records,
-}, indent=2))
+}, indent=2), encoding="utf-8")
