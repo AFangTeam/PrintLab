@@ -135,7 +135,11 @@ def inventory():
     try:
         client = Client()
         rows = client.get("inventory/spools")
-        baseline = core.read_json(core.ROOT / "Library/Materials/quantity-baseline-2026-10-25.json", {})
+        baseline_path = core.safe_path(core.ROOT, 'Library/Materials/quantity-baseline.json', require_file=False)
+        # Preserve historical evidence when upgrading an existing private workspace.
+        if not baseline_path.is_file():
+            baseline_path = core.safe_path(core.ROOT, 'Library/Materials/quantity-baseline-2026-10-25.json', require_file=False)
+        baseline = core.read_json(baseline_path, {})
         return {"state": "online", "kind": "inventory_ledger", "items": materials.inventory_items(rows, baseline),
                 "updated_at": core.now(), "quantity_note": "实际余量未知；设备报告与台账估算分开，历史100%不代表当前满卷。不人工扣料，保留Bambuddy原生追踪。"}
     except (httpx.HTTPError, core.WorkflowError, ValueError, TypeError):

@@ -4,7 +4,7 @@ from __future__ import annotations
 import copy
 import platform
 import hashlib
-from pathlib import PurePosixPath, PureWindowsPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from . import bambuddy, core, workspace
 
@@ -120,8 +120,10 @@ def record_role(role, receipt, expected, adopt=False):
         raise core.WorkflowError('Role receipt requires request_id, thread_id, host_id, workspace and source')
     for key in required:
         workspace.required_text(receipt[key], key)
-    if receipt['workspace'] != str(core.ROOT):
+    declared_root = Path(receipt['workspace'].replace('\\', '/')).expanduser()
+    if not declared_root.is_absolute() or declared_root.resolve() != core.ROOT.resolve():
         raise core.WorkflowError('The chat must use this exact shared workspace')
+    receipt = {**receipt, 'workspace': str(core.ROOT)}
     reply = receipt.get('first_reply')
     paths = receipt.get('context_paths', [])
     if not isinstance(paths, list) or any(not isinstance(p, str) for p in paths):

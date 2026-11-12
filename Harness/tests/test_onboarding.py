@@ -130,7 +130,7 @@ def test_two_roles_normalize_workspace_paths_and_reach_ready(root):
         request = 'test-' + role
         onboarding.reserve_role(role, request, onboarding.state()['version'])
         receipt = {'request_id': request, 'thread_id': request, 'host_id': 'local',
-                   'workspace': str(root), 'source': 'Simulated host readback',
+                   'workspace': root.as_posix() + '/.', 'source': 'Simulated host readback',
                    'first_reply': '已读共同状态，设备未配置。',
                    'context_paths': [str(root / 'AGENTS.md'), 'Context\\profile.md', 'Context/workflow.md']}
         onboarding.record_role(role, receipt, onboarding.state()['version'])
