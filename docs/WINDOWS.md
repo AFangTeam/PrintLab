@@ -23,7 +23,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Harness\bin\printlab.ps1 d
 powershell -NoProfile -ExecutionPolicy Bypass -File .\Harness\bin\printlab.ps1 context
 ```
 
-入门验收创建临时中文项目，通过独立进程检查项目、分工、交接和 API，成功输出 `ok: true`。Sara、Mike 和任务小组共享同一工作空间，按接手指南建立入口与交接记录。其余文档的 `./Harness/bin/printlab` 命令在 Windows 中使用以上 PowerShell 入口，后面的子命令和参数相同。
+入门验收创建临时中文项目，通过独立进程检查项目、分工、交接和 API，成功输出 `ok: true`。Sarah、Mike 和任务小组共享同一工作空间，按接手指南建立入口与交接记录。其余文档的 `./Harness/bin/printlab` 命令在 Windows 中使用以上 PowerShell 入口，后面的子命令和参数相同。
 
 ## 独立安装设计与打印工具
 
@@ -43,7 +43,7 @@ MLX 图生模型路线适用于 Apple Silicon。Windows 的图生模型工具需
 
 ## 通过官方 Studio 打印
 
-Windows 的待打印页显示官方 Studio 交接提示。自动发送助手和原生 Mac 窗口适用于 macOS。Windows 使用浏览器工作台及官方 Bambu Studio 界面。
+Windows 的待打印页按任务绑定的通道处理。使用 `bambuddy_queue` 的适配机型可以通过工作台按钮发送，条件与当前验证范围见 PRINTING.md。官方 Studio 包按下面步骤交接，Mac 的专用窗口助手仍需 macOS。
 
 1. 在 PrintLab 保存当前版本、切片包、设备、板型、材料映射和用量，确认具体作业及清板状态。
 2. 使用 `studio-copy 项目ID 作业ID` 准备官方 Studio 副本，按命令返回内容核对文件与任务记录。先查看当前 `--help`。
@@ -51,7 +51,7 @@ Windows 的待打印页显示官方 Studio 交接提示。自动发送助手和�
 4. 单次发送后读取设备状态与任务回执。回执不明确时先对账，再决定下一步。
 5. 保存首层、完成状态与实物反馈，继续相同项目。
 
-安装脚本会独立下载固定版本的公开文件检查器。`doctor` 实际运行文件检查，并报告依赖缺失或调用失败。Windows 的文件检查、官方预约和工作台 API 可运行；桌面自动发送助手目前仅支持 macOS，因此 Windows 的“启动打印”自动发送入口保持禁用，使用上述官方 Studio 交接步骤。
+安装脚本会独立下载固定版本的公开文件检查器。`doctor` 实际运行文件检查，并报告依赖缺失或调用失败。Windows 的文件检查、官方预约和工作台 API 可运行。本候选版新增共用 Bambuddy 队列按钮适配；Mac Studio 助手继续仅在 macOS 使用。Windows 虚拟机中的新通道回归与实体发送验证尚待完成。
 
 具体批准和回执约束见 [打印流程](PRINTING.md)。首次接入自己的打印机需现场验证设备、切片与发送。
 

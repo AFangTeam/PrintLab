@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import {spawn} from 'node:child_process';
 import path from 'node:path';
 
-const [entry, artifact, plate] = process.argv.slice(2);
+const [entry, artifact, plate, model] = process.argv.slice(2);
 let server;
 try {
   const pkg = JSON.parse(fs.readFileSync(path.resolve(entry, '../../package.json'), 'utf8'));
@@ -41,7 +41,7 @@ try {
   });
   await request('initialize', {protocolVersion:'2024-11-05', capabilities:{}, clientInfo:{name:'printlab-offline-inspector',version:'1.0.0'}});
   send({method:'notifications/initialized'});
-  const result = await request('tools/call', {name:'inspect_print_file',arguments:{file_path:artifact,bambu_model:'x2d',plate_index:Number(plate)}});
+  const result = await request('tools/call', {name:'inspect_print_file',arguments:{file_path:artifact,bambu_model:model,plate_index:Number(plate)}});
   if (result.isError) throw Error(result.content?.find(c=>c.type==='text')?.text || 'Inspector rejected the file.');
   const receipt = result.structuredContent ?? JSON.parse(result.content.find(c=>c.type==='text').text);
   process.stdout.write(JSON.stringify(receipt));

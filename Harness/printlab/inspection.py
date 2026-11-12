@@ -9,9 +9,32 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import re
+import zipfile
 from . import core
 
 VERSION = '1.1.33'
+
+
+def artifact_model(artifact, job):
+    model = job.get('sliced_printer_model')
+    if not model:
+        if artifact.name.lower().endswith('.3mf'):
+            with zipfile.ZipFile(artifact) as archive:
+                member = archive.getinfo('Metadata/project_settings.config')
+                if member.file_size > 16 * 1024 * 1024:
+                    raise core.WorkflowError('Oversized machine configuration')
+                model = json.loads(archive.read(member)).get('printer_model')
+        else:
+            with artifact.open('rb') as stream:
+                header = stream.read(1024 * 1024).decode('utf-8', errors='replace')
+            match = re.search(r'^;\s*printer_model\s*=\s*([^\r\n]+)', header, re.M)
+            model = match[1] if match else None
+    from .machine_profiles import model_id
+    selected = {'X1 CARBON': 'x1c'}.get(model_id(model), model_id(model).lower().replace(' ', ''))
+    if selected not in {'p1s', 'p1p', 'p2s', 'x1c', 'x1e', 'a1', 'a1mini', 'h2d', 'h2s', 'h2c', 'x2d'}:
+        raise core.WorkflowError('Independent inspection requires an identified supported printer model')
+    return selected
 
 
 def inspect(jd, job, *, timeout=90):
@@ -33,12 +56,13 @@ def inspect(jd, job, *, timeout=90):
         digest = core.digest(snapshot)
         if digest != job['artifact_sha256']:
             raise core.WorkflowError('打印文件与登记 SHA-256 不符')
+        model = artifact_model(snapshot, job)
         # Empty home/cwd prevent dotenv and user runtime configuration leaking in.
         env = {k: v for k, v in os.environ.items() if k.upper() in {'PATH', 'SYSTEMROOT', 'WINDIR', 'COMSPEC'}}
         env.update(HOME=temporary, USERPROFILE=temporary, TMP=temporary, TEMP=temporary, TMPDIR=temporary,
                    MCP_TRANSPORT='stdio')
         options = {'creationflags': subprocess.CREATE_NEW_PROCESS_GROUP} if sys.platform == 'win32' else {'start_new_session': True}
-        process = subprocess.Popen([node, str(harness / 'inspect-mcp.mjs'), str(entry), str(snapshot), str(plate - 1)],
+        process = subprocess.Popen([node, str(harness / 'inspect-mcp.mjs'), str(entry), str(snapshot), str(plate - 1), model],
                                    cwd=temporary, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                    text=True, encoding='utf-8', **options)
         try:
@@ -56,7 +80,7 @@ def inspect(jd, job, *, timeout=90):
                     or receipt.get('dispatch_authorized') is not False
                     or receipt.get('artifact', {}).get('sha256') != digest
                     or receipt.get('artifact', {}).get('byte_length') != snapshot.stat().st_size
-                    or receipt.get('selection', {}).get('bambu_model') != 'x2d'
+                    or receipt.get('selection', {}).get('bambu_model') != model
                     or receipt.get('selection', {}).get('plate_index') != plate - 1
                     or receipt.get('inspection', {}).get('sha256') != digest):
                 raise ValueError('inspection evidence does not match the selected file and plate')

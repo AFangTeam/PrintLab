@@ -33,7 +33,7 @@ def workspace(tmp_path, monkeypatch):
     core.write_json(jd / "Profiles/machine.json", {"printer_model": "Bambu Lab X2D"})
     with zipfile.ZipFile(jd / "job.gcode.3mf", "w") as z:
         z.writestr("Metadata/plate_1.gcode", "; SYNTHETIC TEST FILE — NEVER EXECUTE\nM620 S0A\nT0\nM621 S0A\nM109 S220\n; CHANGE_LAYER\nG1 X1 E1")
-        z.writestr("Metadata/project_settings.config", json.dumps({**templates,"nozzle_temperature_initial_layer":[220],"nozzle_temperature":[220],"physical_extruder_map": [0, 1], "filament_map": [1], "filament_type": ["PLA"], "curr_bed_type": "Textured PEI Plate"}))
+        z.writestr("Metadata/project_settings.config", json.dumps({**templates,"printer_model":"Bambu Lab X2D","nozzle_temperature_initial_layer":[220],"nozzle_temperature":[220],"physical_extruder_map": [0, 1], "filament_map": [1], "filament_type": ["PLA"], "curr_bed_type": "Textured PEI Plate"}))
         z.writestr("Metadata/slice_info.config", '<config><plate><metadata key="index" value="1"/><metadata key="prediction" value="7120"/><metadata key="weight" value="33.02"/><nozzle id="0" extruder_id="1"/><filament id="1" group_id="0"/></plate></config>')
     job = {"id": "Jtest", "project_id": "P001", "revision": "v001", "state": "awaiting_approval", "plate": 1,
            "mapping": {"use_ams": True, "ams_mapping": [0], "extruder_mapping": [0], "routing_verified": True, "fts_installed": False},

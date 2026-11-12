@@ -108,7 +108,7 @@ def slot_state(tray):
     return "unknown"
 
 
-def slot_overview(status, assignments=(), inventory_rows=(), observed_at=None, now=None):
+def slot_overview(status, assignments=(), inventory_rows=(), observed_at=None, now=None, printer_model=None):
     """Normalize raw printer status. Returned IDs never include tags or serials."""
     now = datetime.now(timezone.utc).timestamp() if now is None else now
     source_at = _stamp(status.get("last_ams_update"))
@@ -119,6 +119,8 @@ def slot_overview(status, assignments=(), inventory_rows=(), observed_at=None, n
                 if type(status.get("id")) is int and a.get("printer_id") == status["id"]}
     modules = []
     mapping = status.get("ams_extruder_map") or {}
+    from .machine_profiles import single_nozzle_model
+    single_nozzle = single_nozzle_model(printer_model)
     for index, ams in enumerate(status.get("ams") or []):
         aid = ams.get("id")
         trays = {t.get("id"): t for t in ams.get("tray", []) if type(t.get("id")) is int}
@@ -127,9 +129,14 @@ def slot_overview(status, assignments=(), inventory_rows=(), observed_at=None, n
         count = 1 if ams.get("is_ams_ht") is True else 4
         extruder = mapping.get(str(aid), mapping.get(aid))
         extruder = extruder if type(extruder) is int and extruder in {0, 1} else None
+        if single_nozzle and extruder is None:
+            extruder = 0
         name = "AMS " + chr(ord("A") + aid) if type(aid) is int and 0 <= aid <= 25 else f"AMS {aid}"
         logical_nozzle = {1: 1, 0: 2}.get(extruder)
         nozzle_label = {1: "左主喷嘴 1", 0: "右辅喷嘴 2"}.get(extruder)
+        if single_nozzle:
+            logical_nozzle = 1 if extruder == 0 else None
+            nozzle_label = '单喷嘴 1' if extruder == 0 else '路线冲突，待核实'
         slots = []
         for tid in range(count):
             tray = trays.get(tid, {})
@@ -168,4 +175,4 @@ def slot_overview(status, assignments=(), inventory_rows=(), observed_at=None, n
         modules.append({"name": name, "slots": slots})
     return {"modules": modules, "observed_at": observed_at, "source_timestamp": status.get("last_ams_update"),
             "age_seconds": age, "fresh": fresh,
-            "note": "槽位按1–4显示；余量是设备报告，可能滞后。多色不等于使用两个喷嘴。"}
+            "note": "槽位按1–4显示；单喷嘴可通过换料完成多色。余量是设备报告，可能滞后。" if single_nozzle else "槽位按1–4显示；余量是设备报告，可能滞后。多色不等于使用两个喷嘴。"}

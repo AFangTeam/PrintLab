@@ -83,8 +83,15 @@ def device():
     try:
         client = Client()
         raw = client.get(f"printers/{pid}/status")
+        metadata = {}
+        try:
+            metadata = client.get(f'printers/{pid}')
+        except (httpx.HTTPError, ValueError, core.WorkflowError):
+            result['metadata_warning'] = '设备实时状态可读，机型元数据读取失败。'
         age = telemetry_age(raw)
         printer = sanitize_device(raw)
+        if isinstance(metadata, dict) and metadata.get('id') == pid:
+            printer['model'] = metadata.get('model')
         online = raw.get("connected") is True
         stale = age is None or age > 60
         result.update(state="online" if online else "offline", printer=printer, updated_at=core.now(),
@@ -96,7 +103,8 @@ def device():
             spools = client.get("inventory/spools")
         except (httpx.HTTPError, ValueError, core.WorkflowError):
             pass  # Failure to enrich names must not turn a connected device into offline.
-        result["material_slots"] = materials.slot_overview(raw, assignments, spools, observed_at=result["updated_at"])
+        result["material_slots"] = materials.slot_overview(raw, assignments, spools,
+            observed_at=result["updated_at"], printer_model=printer.get('model'))
         reported_fts = (printer.get("fila_switch") or {}).get("installed")
         declared_fts = core.fts_declaration()
         fts_resolution = "conflict" if reported_fts is True and declared_fts is False else "reported_present" if reported_fts is True else "user_confirmed_absent" if declared_fts is False else "unknown"
@@ -106,6 +114,10 @@ def device():
                                       "fts_user_confirmed_installed": declared_fts, "fts_resolution": fts_resolution,
                                       "validated_for_dispatch": False,
                                       "message": "设备报告与用户确认冲突，禁止提交。" if fts_resolution == "conflict" else "用户已明确确认没有 FTS；设备未报告不等于设备证实。仍需核对本次实际路线、打印板和批准。" if fts_resolution == "user_confirmed_absent" else "FTS 未获得无配件的明确用户确认；不能把空设备字段当作不存在。"}
+        from .machine_profiles import single_nozzle_model
+        if single_nozzle_model(printer.get('model')):
+            result['routing_evidence'].update(fts_resolution='not_applicable',
+                message='已识别单喷嘴机型，按当前 AMS 槽位与切片核对供料。')
     except (httpx.HTTPError, core.WorkflowError, ValueError):
         result.update(state="offline", message="无法读取 Bambuddy；设备状态未知。")
     finally:
@@ -149,7 +161,9 @@ def reported_trays(status):
     return trays
 
 
-def validate_ready(status, mapping, *, cleared_finished=False, cancelled_reprint=None):
+def validate_ready(status, mapping, *, cleared_finished=False, cancelled_reprint=None, printer_model=None):
+    from .machine_profiles import single_nozzle_model
+    single_nozzle = single_nozzle_model(printer_model)
     if status.get("connected") is not True:
         raise core.WorkflowError("Printer is disconnected")
     from . import cancelled_transition
@@ -171,7 +185,7 @@ def validate_ready(status, mapping, *, cleared_finished=False, cancelled_reprint
     if status.get("hms_errors"):
         raise core.WorkflowError("Resolve printer diagnostics before dispatch")
     if mapping.get("routing_verified") is not True:
-        raise core.WorkflowError("Validate the actual X2D filament/nozzle route and record routing_verified")
+        raise core.WorkflowError("Validate the actual filament/nozzle route and record routing_verified")
     if mapping.get("use_ams") is not True:
         raise core.WorkflowError("First adapter supports the verified AMS route only")
     ams = mapping.get("ams_mapping")
@@ -187,9 +201,9 @@ def validate_ready(status, mapping, *, cleared_finished=False, cancelled_reprint
     fts = status.get("fila_switch")
     if isinstance(fts, dict) and fts.get("installed") is True:
         raise core.WorkflowError("Live device reports FTS installed; this conflicts with or exceeds the verified direct route")
-    if core.fts_declaration() is not False:
+    if not single_nozzle and core.fts_declaration() is not False:
         raise core.WorkflowError("FTS absence requires explicit dated user confirmation; unknown/null telemetry is insufficient")
-    if mapping.get("fts_installed") is not False:
+    if not single_nozzle and mapping.get("fts_installed") is not False:
         raise core.WorkflowError("Approved route must explicitly bind fts_installed:false to the current hardware declaration")
     trays = reported_trays(status)
     for slot, extruder in zip(ams, extruders):
@@ -197,10 +211,26 @@ def validate_ready(status, mapping, *, cleared_finished=False, cancelled_reprint
         if not tray or tray.get("exists") is False or tray.get("state") == 9 or not tray.get("tray_type"):
             raise core.WorkflowError("Mapped AMS slot is missing, empty, or has unknown material")
         if slot >= 254:
+            if single_nozzle:
+                raise core.WorkflowError('This single-nozzle adapter currently requires an observed AMS slot')
             if mapping.get('transport') not in {'bambu_native', 'bambu_studio'} or slot != {0: 255, 1: 254}[extruder]:
                 raise core.WorkflowError('External spool does not match its bound X2D physical nozzle')
+        elif single_nozzle:
+            if extruder != 0:
+                raise core.WorkflowError('The selected single-nozzle machine requires physical extruder 0')
+            observed = status.get('ams_extruder_map', {}).get(str(slot // 4))
+            if observed is not None and observed != 0:
+                raise core.WorkflowError('Reported AMS route contradicts the single-nozzle mapping')
         elif status.get("ams_extruder_map", {}).get(str(slot // 4)) != extruder:
             raise core.WorkflowError("Observed AMS-to-extruder routing does not match the approved mapping")
+
+
+def verify_machine_identity(client, job):
+    from .machine_profiles import single_nozzle_model, model_id
+    if single_nozzle_model(job.get('sliced_printer_model')):
+        metadata = client.get(f"printers/{job['printer_id']}")
+        if metadata.get('id') != job['printer_id'] or model_id(metadata.get('model')) != model_id(job['sliced_printer_model']):
+            raise core.WorkflowError('Live selected printer identity differs from the sliced machine profile')
 
 
 def validate_support_profile_identity(settings, tray, index):
@@ -288,7 +318,7 @@ def validate_slice_route(jd, job, status):
             if sliced_type != live_type and not gfs05_alias:
                 raise ValueError("Loaded material differs from sliced filament profile")
     except (KeyError, ValueError, IndexError, TypeError, ET.ParseError) as exc:
-        raise core.WorkflowError("Cannot verify exact sliced X2D nozzle/material route; inspect in Bambu Studio. " + str(exc)) from exc
+        raise core.WorkflowError("Cannot verify exact sliced nozzle/material route; inspect in Bambu Studio. " + str(exc)) from exc
 
 
 def validate_native_filaments(status, mapping):
@@ -341,6 +371,7 @@ def preflight(p, jd, job, approval, client, *, native=False, official=False):
             if not 0 <= age <= 1800:
                 raise core.WorkflowError("Original confirmation expired; recording a new approval does not refresh it")
     status = client.get(f"printers/{job['printer_id']}/status")
+    verify_machine_identity(client, job)
     device_card = core.read_json(core.ROOT / "Library/Devices/X2D/device.json", {})
     model = device_card.get("model") or device_card.get("user_confirmed", {}).get("model") or job.get("sliced_printer_model", "")
     if not native and not official and "X2D" in str(model).upper() and status.get("sdcard") is not True:
@@ -351,7 +382,8 @@ def preflight(p, jd, job, approval, client, *, native=False, official=False):
         raise core.WorkflowError('Official route is not bound to approval')
     from . import cancelled_transition
     cancelled_reprint = cancelled_transition.clearance(p, jd, job, approval) if native else None
-    validate_ready(status, job["mapping"], cleared_finished=native or official, cancelled_reprint=cancelled_reprint)
+    validate_ready(status, job["mapping"], cleared_finished=native or official, cancelled_reprint=cancelled_reprint,
+                   printer_model=job.get('sliced_printer_model'))
     validate_slice_route(jd, job, status)
     if native or official:
         validate_native_filaments(status, job['mapping'])
@@ -399,7 +431,9 @@ def submit(pid, jid, execute=False, client_factory=None):
                 queue = client.get("queue/")
                 if any(q.get("id") != item["id"] and q.get("status") in {"pending", "printing"} for q in queue):
                     raise core.WorkflowError("Another task entered the queue while staging")
-                validate_ready(client.get(f"printers/{job['printer_id']}/status"), job["mapping"])
+                verify_machine_identity(client, job)
+                validate_ready(client.get(f"printers/{job['printer_id']}/status"), job["mapping"],
+                               printer_model=job.get('sliced_printer_model'))
                 if core.job_fingerprint(p, jd, job) != approval["fingerprint"]:
                     raise core.WorkflowError("Approved files changed while staging")
                 receipt.update(state="start_requested", start_requested_at=core.now())
@@ -449,6 +483,8 @@ def reconcile(pid, jid, client=None):
         stamp = core.now()
         age = telemetry_age(live)
         stale = live.get("connected") is not True or age is None or age > 60
+        expected_names = {jid, jid + '.gcode', jid + '.gcode.3mf'}
+        matching = live.get('current_print') in expected_names
         observation = {"observed_at": stamp, "queue": remote, "device": {k: live.get(k) for k in ("id", "connected", "state", "current_print", "progress", "last_ams_update")},
                        "telemetry_age_seconds": age, "telemetry_source": "AMS report; global printer timestamp unavailable", "stale": stale}
         core.write_json(jd / "observation.json", observation)
@@ -462,7 +498,8 @@ def reconcile(pid, jid, client=None):
         if project_state in {"printing", "awaiting_physical_review", "needs_changes"} and _is_current_attempt(core.project_path(pid), job):
             project.update(status=project_state, updated_at=core.now())
             core.write_json(core.project_path(pid) / "project.json", project)
-        return {"job": job, "queue_state": state, "device_state": live.get("state"), "connected": live.get("connected"), "telemetry_age_seconds": telemetry_age(live)}
+        return {"job": job, "queue_state": state, "device_state": live.get("state"), "connected": live.get("connected"),
+                "matching_task": matching, "fresh": not stale, "telemetry_age_seconds": telemetry_age(live)}
     finally:
         if own:
             client.close()

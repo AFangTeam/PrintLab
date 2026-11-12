@@ -279,7 +279,7 @@ def new_project(name, kind="functional", brief="", summary_text=""):
 def context(pid=None):
     from . import shop, bambuddy
     paths = [ROOT / x for x in ["AGENTS.md", "Context/profile.md", "Context/workflow.md", "Library/Devices/X2D/device.json", "Library/Devices/X2D/installed.md", "Context/lessons.md"]]
-    for rel in ("Context/image-to-print.md", "Context/agent-policy.json", "Context/taste.md", "Context/team.md"):
+    for rel in ("Context/image-to-print.md", "Context/agent-policy.json", "Context/taste.md", "Context/team.md", "Context/onboarding.json"):
         if (ROOT / rel).is_file():
             paths.append(ROOT / rel)
     if (ROOT / "Library/Shopping/README.md").is_file():
@@ -291,7 +291,7 @@ def context(pid=None):
     if pid:
         p = project_path(pid)
         paths += [p / "project.json", p / "brief.md", p / "decisions.md"]
-        for rel in ("Review/design-target.json", "Review/model-routing.md", "Review/model-routing.json", "Review/remix-plan.md", "Review/team.md"):
+        for rel in ("Review/design-target.json", "Review/manufacturing-context.json", "Review/model-routing.md", "Review/model-routing.json", "Review/remix-plan.md", "Review/team.md"):
             if (p / rel).is_file():
                 paths.append(p / rel)
         pointer = read_json(p / "project.json").get("latest_session")
@@ -304,6 +304,8 @@ def context(pid=None):
             paths += sessions[:1]
     result = {"project_id": read_json(p / "project.json")["id"] if pid else None, "loaded": [], "missing": [], "documents": [],
               "shopping": shop.view(pid), "materials": bambuddy.inventory()}
+    from . import onboarding
+    result['onboarding'] = onboarding.view(inventory=result['materials'])
     from . import taste
     result["taste"] = taste.summary(pid)
     for p in paths:
@@ -314,6 +316,8 @@ def context(pid=None):
         else:
             result["missing"].append(rel)
     if pid:
+        from . import constraints
+        result['manufacturing_context'] = constraints.view(pid, result['materials'])
         from . import publication
         try:
             result['publication'] = publication.check(pid)
@@ -338,11 +342,15 @@ def build(pid, revision, engine):
         raise WorkflowError("Built revisions are immutable; create a new revision")
     cfg = config()
     python = cfg.get("cad_python") or sys.executable
-    command = [python, str(ROOT / "Harness/build_model.py"), "--project", str(p), "--revision", revision, "--engine", engine]
+    from . import constraints
+    envelope = constraints.build_envelope(pid)
+    command = [python, str(Path(__file__).resolve().parents[1] / "build_model.py"), "--project", str(p),
+               "--revision", revision, "--engine", engine, '--build-envelope', json.dumps(envelope)]
     with lock(read_json(p / "project.json")["id"]):
         if out.exists():
             raise WorkflowError("Built revisions are immutable; create a new revision")
-        result = subprocess.run(command, capture_output=True, text=True, timeout=600)
+        result = subprocess.run(command, capture_output=True, text=True, timeout=600,
+                                env={**os.environ, 'PRINTLAB_ROOT': str(ROOT)})
         evidence = ROOT / "Runtime/evidence" / f"{pid}-{revision}-build.log"
         evidence.parent.mkdir(parents=True, exist_ok=True)
         evidence.write_text(result.stdout + "\n" + result.stderr, encoding="utf-8")
@@ -433,14 +441,19 @@ def slice_metadata(path, plate=1):
 
 
 def print_configuration_issues(job):
+    from . import machine_profiles
     issues = []
     if job.get("printer_id") is None:
         issues.append("未绑定实际打印机")
     mapping = job.get("mapping", {})
     if mapping.get("routing_verified") is not True or not mapping.get("ams_mapping") or not mapping.get("extruder_mapping"):
         issues.append("实际耗材和挤出机路线尚未核验")
-    if mapping.get("fts_installed") is not False or fts_declaration() is not False:
+    if not machine_profiles.single_nozzle_model(job.get('sliced_printer_model')) and (mapping.get("fts_installed") is not False or fts_declaration() is not False):
         issues.append("直连路线需绑定用户明确确认的无 FTS 配置")
+    card = read_json(ROOT / 'Library/Devices/X2D/device.json', {})
+    model = card.get('user_confirmed', {}).get('model') or card.get('model')
+    if model and job.get('sliced_printer_model') and machine_profiles.model_id(model) != machine_profiles.model_id(job['sliced_printer_model']):
+        issues.append('切片机型与已选设备档案不一致')
     if not job.get("requested_bed_type"):
         issues.append("未明确确认实际打印板；切片中的板型仅为试算配置")
     elif job.get("curr_bed_type") != job["requested_bed_type"]:
@@ -520,8 +533,8 @@ def slice_project(pid, machine, process, filaments, revision=None, plate=1, mapp
         if not isinstance(d, dict) or d.get("inherits") or d.get("include"):
             raise WorkflowError("Use complete exported profiles; unresolved inheritance/include is not accepted")
     machine_data = read_json(profiles[0])
-    if "X2D" not in str(machine_data.get("printer_model", machine_data.get("name", ""))).upper():
-        raise WorkflowError("Machine profile must explicitly target X2D")
+    if not machine_data.get('printer_model'):
+        raise WorkflowError('Machine profile must identify its target printer model')
     for field in ("machine_start_gcode", "machine_end_gcode", "printable_area"):
         if field not in machine_data:
             raise WorkflowError(f"Incomplete machine profile: missing {field}")
@@ -631,9 +644,10 @@ def job_path(pid, jid):
 
 
 def job_fingerprint(p, jd, job):
+    from . import machine_profiles
     if read_json(p / "project.json").get("current_revision") != job["revision"]:
         raise WorkflowError("Project revision changed; previous approval is stale")
-    if job.get("mapping", {}).get("fts_installed") is not False or fts_declaration() is not False:
+    if not machine_profiles.single_nozzle_model(job.get('sliced_printer_model')) and (job.get("mapping", {}).get("fts_installed") is not False or fts_declaration() is not False):
         raise WorkflowError("FTS hardware declaration changed or is unconfirmed; previous route approval is invalid")
     validate_3mf(jd / job["artifact"], job.get("plate", 1))
     current_source = revision_files(p, job["revision"])

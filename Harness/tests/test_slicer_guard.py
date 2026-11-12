@@ -8,7 +8,7 @@ from test_workflow import workspace, SimulatedBambuddy
 
 def synthetic():
     templates = {key: 'test ' + key for key in slicer_guard.FIELDS}
-    settings = {**templates, 'filament_type':['PETG'], 'nozzle_temperature_initial_layer':[245], 'nozzle_temperature':[245]}
+    settings = {**templates, 'printer_model': 'Bambu Lab X2D', 'filament_type':['PETG'], 'nozzle_temperature_initial_layer':[245], 'nozzle_temperature':[245]}
     return templates, settings
 
 
@@ -60,6 +60,14 @@ def test_earlier_correct_temperature_does_not_hide_later_wrong_start_target(monk
     assert not slicer_guard.audit(prefix+'M104 S205\n; CHANGE_LAYER\nG1 E1',settings)['ok']
     for key in slicer_guard.FIELDS:
         assert not slicer_guard.audit(prefix+'; CHANGE_LAYER\nG1 E1',{**settings,key:'simplified'})['ok']
+
+
+def test_single_physical_nozzle_vendor_tool_space_does_not_erase_last_temperature(monkeypatch):
+    templates, settings = synthetic()
+    monkeypatch.setattr(slicer_guard, 'official_templates', lambda: templates)
+    prefix = 'M620 S0A\nT0\nM621 S0A\nM109 S170\nT1000\nM109 S245\n'
+    assert slicer_guard.audit(prefix + '; CHANGE_LAYER\nG1 E1', settings)['ok']
+    assert not slicer_guard.audit(prefix + 'M104 S170\n; CHANGE_LAYER\nG1 E1', settings)['ok']
 
 
 def test_bambu_grouped_standard_temperatures_use_one_variant_per_filament(monkeypatch):

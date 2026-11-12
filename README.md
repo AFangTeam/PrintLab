@@ -18,7 +18,7 @@ PrintLab 是阿方（Eric）在 E41 视频中使用的 3D 打印工作台与协�
 
 把仓库链接和下面这段话发给具有本机终端、文件读写能力的 Codex 或其他 Agent。
 
-> 请帮我安装 https://github.com/AFangTeam/PrintLab 。先读 README.md、AGENTS.md 和 docs/AGENT_START.md，在本机建立长期工作空间，启动工作台并运行入门验收。帮我建立 Sara · 3D 打印顾问和 Mike · 工作流设计师两个聊天，全部绑定同一工作空间，记录实际建立状态。第一件作品确定后再建立任务小组。第三方工具从原项目独立安装。需要设备信息、登录或系统权限时告诉我具体操作。最后给我工作空间路径、工作台地址、角色入口、验证结果和下一步。
+> 请帮我安装 https://github.com/AFangTeam/PrintLab 。先读 README.md、AGENTS.md 和 docs/AGENT_START.md，在本机建立长期工作空间，启动工作台并运行入门验收。自动建立 Sarah · 3D 打印顾问和 Mike · 工作流设计师两个独立聊天，全部绑定同一工作空间，让它们读取共同资料并分别介绍自己。了解我的打印机、材料与使用习惯，按 docs/ONBOARDING.md 接续配置，记录实际建立状态。第一件作品确定后再建立任务小组。第三方工具从原项目独立安装。需要设备信息、登录或系统权限时告诉我具体操作。最后给我工作空间路径、工作台地址、角色入口、验证结果和下一步。
 
 仓库内提供原创 [PrintLab Skill](.agents/skills/printlab/SKILL.md)。支持仓库 `.agents/skills` 的 Agent 可在此工作空间加载；其他宿主按自身技能安装规则安装该目录，技能仍需指向实际工作台。首次设备信息按 [配置访谈](docs/FIRST_RUN.md) 收集。
 
@@ -56,7 +56,7 @@ Windows 的工具路径、验证命令和官方 Studio 交接见 [Windows 指南
 
 ## 这支队伍怎样配合
 
-- **Sara · 3D 打印顾问** 了解你的设备、材料和常见故障，帮助核对配件与耗材。购物清单可以跨项目汇总。实际加购物车由你授权后，交给具备浏览器操作能力的 Codex 完成。
+- **Sarah · 3D 打印顾问** 了解你的设备、材料和常见故障，帮助核对配件与耗材。购物清单可以跨项目汇总。实际加购物车由你授权后，交给具备浏览器操作能力的 Codex 完成。
 - **Mike · 工作流设计师** 维护工具连接、工作台和共用规则，处理安装、版本、接口与流程问题。
 - **任务小组 · 作品名称** 每件作品开一个对话，保存需求、选图、源模型、切片与反馈，后续会话接着同一项目继续。
 
@@ -100,3 +100,5 @@ cd Harness/studio && npm run build
 PrintLab 原创源码和文档采用 **PolyForm Noncommercial 1.0.0**。允许在许可规定的非商业用途下使用、修改和再发布，再发布须附上许可及 `NOTICE.txt` 中的署名声明。商业用途需要另行取得 AFangTeam 授权。
 
 原作者为 **AFangTeam / 阿方（Eric）**，项目地址为 <https://github.com/AFangTeam/PrintLab>。许可全文见 [LICENSE.md](LICENSE.md)，署名要求见 [NOTICE.txt](NOTICE.txt)。独立安装的第三方软件遵循各自的许可。
+
+当前机型与验证边界见 [支持范围](docs/MACHINE_SUPPORT.md)，发送与接续故障见 [排障指南](docs/TROUBLESHOOTING.md)。

@@ -65,10 +65,10 @@ def main():
                 subprocess.run(['hdiutil', 'detach', str(mount)], check=True, capture_output=True, timeout=60)
 
 
-def slice_probe(root, executable, profiles, output):
-    selected = [('machine', 'Bambu Lab X2D 0.4 nozzle'),
-                ('process', '0.20mm Standard @BBL X2D'),
-                ('filament', 'Bambu PLA Basic @BBL X2D 0.4 nozzle')]
+def slice_probe(root, executable, profiles, output, selected=None):
+    selected = selected or [('machine', 'Bambu Lab X2D 0.4 nozzle'),
+                            ('process', '0.20mm Standard @BBL X2D'),
+                            ('filament', 'Bambu PLA Basic @BBL X2D 0.4 nozzle')]
     for kind, name in selected:
         write_candidate(profiles/'BBL'/kind/(name+'.json'), root/(kind+'.json'))
     process = json.loads((root/'process.json').read_text(encoding='utf-8'))
@@ -95,7 +95,8 @@ def slice_probe(root, executable, profiles, output):
         core.ROOT = root
         core.write_json(root/'Runtime/config.json', {'slicer_profiles_path': str(profiles)})
         metadata = core.slice_metadata(artifact)
-        assert metadata['sliced_printer_model'] == 'Bambu Lab X2D'
+        machine = json.loads((root/'machine.json').read_text(encoding='utf-8'))
+        assert metadata['sliced_printer_model'] == machine['printer_model']
         assert metadata['curr_bed_type'] == 'Textured PEI Plate'
         assert metadata['sliced_filament_types'] == ['PLA']
         audit = slicer_guard.assert_safe_archive(artifact, 1)

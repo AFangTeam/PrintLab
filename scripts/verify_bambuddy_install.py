@@ -1,4 +1,4 @@
-"""Install upstream Bambuddy separately and verify read-only integration in isolation."""
+"""Install upstream Bambuddy separately and verify isolated reads and material intake."""
 from contextlib import contextmanager
 import json
 import os
@@ -10,7 +10,7 @@ import tempfile
 import time
 
 import httpx
-from printlab import bambuddy, core, native
+from printlab import bambuddy, core, native, material_intake
 
 ROOT = Path(__file__).resolve().parent.parent
 VERSION = 'v1.2.5.7'
@@ -107,11 +107,29 @@ def probe(source, python, root, output, log):
             finally:
                 client.close()
             assert bambuddy.inventory()['state'] == 'online'
+            response = http.post('/api/v1/api-keys/', json={
+                'name': 'PrintLab disposable material intake', 'can_read_status': True,
+                **{'can_'+name: name == 'manage_inventory' for name in permissions}})
+            response.raise_for_status()
+            inventory_credential = response.json()
+            core.write_json(core.ROOT/'Runtime/private/bambuddy.json', {
+                'read_api_key': credential['key'], 'write_api_key': inventory_credential['key']})
+            spool = {'material': 'PLA', 'color_name': 'White', 'rgba': 'FFFFFFFF',
+                     'storage_location': 'Isolated test fixture'}
+            registered = material_intake.register(spool, 'Disposable fixture, no real spool', 'fixture-1')
+            repeated = material_intake.register(spool, 'Disposable fixture, no real spool', 'fixture-1')
+            assert repeated['replayed'] and repeated['spool']['id'] == registered['spool']['id']
+            assert registered['spool']['actual_remaining_weight'] is None
+            assert registered['spool']['quantity_basis'] == 'unknown'
+            assert len(bambuddy.inventory()['items']) == 1
+            response = http.delete('/api/v1/api-keys/'+str(inventory_credential['id']))
+            response.raise_for_status()
             response = http.delete('/api/v1/api-keys/'+str(credential['id']))
             response.raise_for_status()
             return {'ok': True, 'os': sys.platform, 'version': VERSION, 'commit': COMMIT,
                       'read_routes': paths, 'independent_service': True,
                       'credential_created_and_revoked': True, 'printer_contacted': False,
+                      'material_intake_created_read_back_and_replayed': True,
                       'frontend_installed': False, 'scope': 'Official source backend and real PrintLab HTTP client'}
     finally:
         core.ROOT = previous_root

@@ -1,0 +1,18 @@
+.onboarding-page { max-width: 1160px; }
+.onboarding-panel { padding: 24px; margin: 20px 0; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); }
+.onboarding-panel h2 { margin: 0 0 12px; font-size: 20px; }
+.onboarding-panel p, .onboarding-panel li { line-height: 1.7; }
+.onboarding-panel li + li { margin-top: 8px; }
+.onboarding-panel summary { cursor: pointer; padding: 8px 0; }
+.onboarding-roles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.onboarding-roles .onboarding-panel { margin: 0; }
+.onboarding-panel dd { margin: 4px 0 16px; overflow-wrap: anywhere; }
+.onboarding-panel dt { color: var(--muted); font-size: 13px; }
+.onboarding-documents { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.onboarding-path, .role-reply { overflow-wrap: anywhere; }
+.role-reply { white-space: pre-wrap; }
+@media (max-width: 700px) {
+  .onboarding-roles { grid-template-columns: 1fr; }
+  .onboarding-panel { padding: 18px; }
+  .onboarding-page .page-heading { align-items: flex-start; gap: 18px; flex-direction: column; }
+}

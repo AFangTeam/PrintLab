@@ -15,19 +15,20 @@ export default function Prepared(){
  const [items,setItems]=useState(null),[error,setError]=useState('');
  useEffect(()=>{let live=true;const load=()=>json('/api/prepared').then(d=>{if(live){setItems(arr(d.items));setError('')}}).catch(e=>live&&setError(e.message));load();addEventListener('printlab:refresh',load);return()=>{live=false;removeEventListener('printlab:refresh',load)}},[]);
  return <div className="prepared-page"><header className="page-heading"><div><span className="eyebrow">PREPARED PRINTS</span><h1>待打印</h1><p>准备好的任务会留在这里。启动前再核对设备和材料。</p></div></header>
- <SenderSetup/>
+ <SenderSetup items={items}/>
  {error&&<p className="prepared-alert" role="alert"><AlertCircle size={20}/>{error}</p>}
  {!items&&!error?<p className="muted">正在读取待打印任务…</p>:items?.length?<div className="prepared-list">{items.map((item,i)=><PreparedCard key={`${item.project_id||item.pid}-${item.job_id||item.jid}-${i}`} item={item}/>)}</div>:items&&<div className="empty-state"><Box size={32}/><h3>还没有待打印任务</h3><p>准备好的任务会显示在这里。</p></div>}
  </div>
 }
-function SenderSetup(){
+function SenderSetup({items}){
  const [cap,setCap]=useState(null),[error,setError]=useState(''),[confirm,setConfirm]=useState(false),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
  const topLevel=window.top===window.self;
  async function refresh(){try{const result=await json('/api/prepared/sender/capability');setCap(result);setError('')}catch(e){setError(`发送助手状态暂不可用：${e.message}`)}}
  useEffect(()=>{refresh()},[]);
  async function enable(){if(!topLevel||busy)return;setBusy(true);setError('');try{const session=await json('/api/prepared/session');const result=await json('/api/prepared/sender/enable',{method:'POST',headers:{'Content-Type':'application/json','X-PrintLab-CSRF':session.csrf_token},body:JSON.stringify({request_permissions:true})});setNotice(result.message||'请在 macOS 系统设置中检查并勾选 PrintLab发送助手，然后刷新权限状态。');setConfirm(false);await refresh()}catch(e){setError(`暂时无法启用发送助手：${e.message}`)}finally{setBusy(false)}}
+ if(items?.length&&items.every(item=>item.transport==='bambuddy_queue'))return null;
  if(!cap&&!error)return null;
- if(cap?.setup_supported===false)return <section className="sender-setup" aria-label="Windows 打印交接"><h2>通过官方 Studio 打印</h2><p>{cap.message}</p><a href="https://github.com/AFangTeam/PrintLab/blob/main/docs/WINDOWS.md" target="_blank" rel="noreferrer">查看 Windows 打印步骤</a></section>;
+ if(cap?.setup_supported===false)return <section className="sender-setup" aria-label="Windows 打印交接"><h2>Windows 发送通道</h2><p>已绑定 Bambuddy 队列通道的任务可逐项核验并启动。需要官方 Studio 的任务继续使用下方交接步骤。</p><a href="https://github.com/AFangTeam/PrintLab/blob/main/docs/WINDOWS.md" target="_blank" rel="noreferrer">查看 Windows 打印步骤</a></section>;
  if(cap?.available===true&&!cap?.setup_required&&!notice&&!error)return null;
  const permission=value=>value===true?'已授权':value===false?'待授权':'待核实';
  return <section className="sender-setup" aria-label="发送助手设置"><div className="sender-setup-title"><div><span className="section-eyebrow">一次性设置</span><h2>启用 PrintLab发送助手</h2></div></div>

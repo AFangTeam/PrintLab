@@ -86,22 +86,35 @@ def main():
                 page.wait_for_function("Array.from(document.querySelectorAll('.gallery-cover img')).filter(i => i.complete && i.naturalWidth === 8).length === 3")
                 page.screenshot(path=str(output / 'recovered-previews.png'), full_page=True, animations='disabled')
                 checked = []
-                for route, title in [('projects', '项目图册'), ('prepared', '待打印'),
+                for route, title in [('onboarding', '配置与队伍'), ('projects', '项目图册'), ('prepared', '待打印'),
                                      ('history', '每一次打印，都在这里。'), ('favorites', '灵感收藏'),
                                      ('shop', '购物清单'), ('library', '资料与经验'), ('device', '设备与材料')]:
                     page.goto(base + '/#/' + route)
                     page.get_by_role('heading', name=title, exact=True).wait_for()
                     checked.append(route)
+                page.goto(base + '/#/onboarding')
+                page.get_by_role('heading', name='Sarah · 3D 打印顾问', exact=True).wait_for()
+                page.get_by_role('heading', name='Mike · 工作流设计师', exact=True).wait_for()
+                assert page.get_by_role('button', name='让 Agent 接着配置').count() == 1
+                page.get_by_role('button', name='Context/profile.md', exact=True).click()
+                page.get_by_role('dialog').wait_for()
+                assert '加载失败' not in page.get_by_role('dialog').inner_text()
+                page.keyboard.press('Escape')
+                page.screenshot(path=str(output / 'onboarding-desktop.png'), full_page=True, animations='disabled')
                 page.goto(base + '/#/projects/' + project['id'])
                 page.get_by_role('heading', name='Windows 中文工作流验收', exact=True).wait_for()
                 assert '验证用途与尺寸记录' in page.locator('main').inner_text()
                 page.screenshot(path=str(output / 'project-desktop.png'), full_page=True, animations='disabled')
                 page.goto(base + '/#/prepared')
                 if sys.platform == 'win32':
-                    page.get_by_role('heading', name='通过官方 Studio 打印').wait_for()
+                    page.get_by_role('heading', name='Windows 发送通道').wait_for()
                     assert page.get_by_role('button', name='启用发送助手', exact=True).count() == 0
                 page.screenshot(path=str(output / 'prepared-desktop.png'), full_page=True, animations='disabled')
                 page.set_viewport_size({'width': 390, 'height': 844})
+                page.goto(base + '/#/onboarding')
+                page.get_by_role('heading', name='配置与队伍', exact=True).wait_for()
+                assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+                page.screenshot(path=str(output / 'onboarding-mobile.png'), full_page=True, animations='disabled')
                 page.goto(base + '/#/projects')
                 page.get_by_role('heading', name='项目图册', exact=True).wait_for()
                 page.screenshot(path=str(output / 'projects-mobile.png'), full_page=True, animations='disabled')

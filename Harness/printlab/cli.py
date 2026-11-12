@@ -12,6 +12,68 @@ from . import bambuddy, core, shop
 def parser():
     p = argparse.ArgumentParser(prog="printlab", description="PrintLab file-based design and approved printing workflow")
     sub = p.add_subparsers(dest="command", required=True)
+    onboarding_parser = sub.add_parser('onboarding', help='Resume first-run setup and host-managed role creation')
+    onboarding_commands = onboarding_parser.add_subparsers(dest='onboarding_command', required=True)
+    onboarding_status = onboarding_commands.add_parser('status')
+    onboarding_status.add_argument('--refresh', action='store_true')
+    onboarding_commands.add_parser('discover')
+    adopt_device = onboarding_commands.add_parser('adopt-device')
+    adopt_device.add_argument('--expect-sha', required=True, help='Current device document SHA, or missing')
+    host = onboarding_commands.add_parser('host')
+    host.add_argument('--file', required=True, help='JSON with name, capabilities and observed tool evidence')
+    host.add_argument('--expect', type=int, required=True)
+    answer = onboarding_commands.add_parser('answer')
+    answer.add_argument('key', choices=['usage_goals', 'cloud_needs', 'additional_materials'])
+    answer.add_argument('--text', required=True)
+    answer.add_argument('--source', required=True)
+    answer.add_argument('--expect', type=int, required=True)
+    reserve_role = onboarding_commands.add_parser('reserve-role')
+    reserve_role.add_argument('role')
+    reserve_role.add_argument('--request-id', required=True)
+    reserve_role.add_argument('--expect', type=int, required=True)
+    record_role = onboarding_commands.add_parser('record-role')
+    record_role.add_argument('role')
+    record_role.add_argument('--file', required=True)
+    record_role.add_argument('--expect', type=int, required=True)
+    record_role.add_argument('--adopt-existing', action='store_true', help='Bind an existing host chat after reading its actual workspace and reply')
+    release_role = onboarding_commands.add_parser('release-role', help='Recover a failed host creation after verifying no chat was created')
+    release_role.add_argument('role')
+    release_role.add_argument('--request-id', required=True)
+    release_role.add_argument('--evidence', required=True)
+    release_role.add_argument('--expect', type=int, required=True)
+    workspace_parser = sub.add_parser('workspace', help='Read and version-check shared facts; no printer actions')
+    workspace_commands = workspace_parser.add_subparsers(dest='workspace_command', required=True)
+    show_document = workspace_commands.add_parser('show')
+    show_document.add_argument('name', choices=['profile', 'taste', 'lessons', 'team', 'device'])
+    note = workspace_commands.add_parser('note')
+    note.add_argument('name', choices=['profile', 'taste', 'lessons', 'team'])
+    note.add_argument('--text', required=True)
+    note.add_argument('--source', required=True)
+    note.add_argument('--request-id', required=True)
+    note.add_argument('--expect-sha', required=True)
+    device_update = workspace_commands.add_parser('device')
+    device_update.add_argument('--file', required=True, help='Confirmed device fact changes as JSON')
+    device_update.add_argument('--source', required=True)
+    device_update.add_argument('--expect-sha', required=True)
+    workspace_commands.add_parser('connection')
+    profiles = workspace_commands.add_parser('profiles', help='List installed official machine presets')
+    profiles.add_argument('--model')
+    profile = workspace_commands.add_parser('profile', help='Record a matching official machine preset and source hashes')
+    profile.add_argument('--name', required=True)
+    profile.add_argument('--expect-sha', required=True)
+    connect = workspace_commands.add_parser('connect')
+    connect.add_argument('--url', required=True)
+    connect.add_argument('--printer-id', type=int, required=True)
+    connect.add_argument('--expect-sha', required=True)
+    intake = sub.add_parser('material-intake', help='Register one user-confirmed spool; does not load or print')
+    intake.add_argument('--file', required=True, help='JSON describing one physical spool')
+    intake.add_argument('--source', required=True, help='User confirmation of owning this spool')
+    intake.add_argument('--request-id', required=True, help='Stable ID for this physical spool and intake operation')
+    constraints = sub.add_parser('constraints', help='Read or capture project-specific device and material facts')
+    constraints.add_argument('action', choices=['show', 'capture'])
+    constraints.add_argument('project')
+    constraints.add_argument('--source', help='Reason for this design context capture')
+    constraints.add_argument('--expect-sha', help='Current snapshot SHA or missing for the first capture')
     shelf = sub.add_parser('prepared', help='Prepared shelf; registration and checks never print')
     shelf_sub = shelf.add_subparsers(dest='prepared_command', required=True)
     shelf_sub.add_parser('list')
@@ -192,7 +254,55 @@ def parser():
 def main(argv=None):
     a = parser().parse_args(argv)
     try:
-        if a.command == 'prepared':
+        if a.command == 'workspace':
+            from . import workspace
+            expected = None if getattr(a, 'expect_sha', None) == 'missing' else getattr(a, 'expect_sha', None)
+            if a.workspace_command == 'show':
+                result = workspace.document(a.name)
+            elif a.workspace_command == 'note':
+                result = workspace.append_note(a.name, a.text, a.source, a.request_id, expected)
+            elif a.workspace_command == 'device':
+                result = workspace.update_device(json.loads(Path(a.file).read_text(encoding='utf-8')), a.source, expected)
+            elif a.workspace_command == 'connection':
+                result = workspace.connection()
+            elif a.workspace_command == 'profiles':
+                from . import machine_profiles
+                result = machine_profiles.list_profiles(a.model)
+            elif a.workspace_command == 'profile':
+                from . import machine_profiles
+                result = machine_profiles.adopt(a.name, expected)
+            else:
+                result = workspace.configure_connection(a.url, a.printer_id, expected)
+        elif a.command == 'constraints':
+            from . import constraints
+            if a.action == 'show':
+                result = constraints.view(a.project)
+            else:
+                if not a.source or not a.expect_sha:
+                    raise core.WorkflowError('capture requires --source and --expect-sha')
+                result = constraints.capture(a.project, a.source, None if a.expect_sha == 'missing' else a.expect_sha)
+        elif a.command == 'material-intake':
+            from . import material_intake
+            result = material_intake.register(json.loads(Path(a.file).read_text(encoding='utf-8')), a.source, a.request_id)
+        elif a.command == 'onboarding':
+            from . import onboarding
+            if a.onboarding_command == 'status':
+                result = onboarding.view(bambuddy.device(), bambuddy.inventory()) if a.refresh else onboarding.view()
+            elif a.onboarding_command == 'discover':
+                result = onboarding.discover()
+            elif a.onboarding_command == 'adopt-device':
+                result = onboarding.adopt_device(None if a.expect_sha == 'missing' else a.expect_sha)
+            elif a.onboarding_command == 'host':
+                result = onboarding.record_host(**json.loads(Path(a.file).read_text(encoding='utf-8')), expected=a.expect)
+            elif a.onboarding_command == 'answer':
+                result = onboarding.answer(a.key, a.text, a.source, a.expect)
+            elif a.onboarding_command == 'reserve-role':
+                result = onboarding.reserve_role(a.role, a.request_id, a.expect)
+            elif a.onboarding_command == 'release-role':
+                result = onboarding.release_role(a.role, a.request_id, a.evidence, a.expect)
+            else:
+                result = onboarding.record_role(a.role, json.loads(Path(a.file).read_text(encoding='utf-8')), a.expect, adopt=a.adopt_existing)
+        elif a.command == 'prepared':
             from . import prepared, workbench
             if a.prepared_command == 'list':
                 result = prepared.catalogue()

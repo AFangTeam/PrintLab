@@ -37,6 +37,9 @@ def latest_operation(pid, jid):
 
 def capability(report):
     kind = report.get('transport', {}).get('kind')
+    if kind == 'bambuddy_queue':
+        from . import queue_sender
+        return queue_sender.capability(report)
     if kind == 'bambu_studio':
         try:
             from . import studio_bridge
@@ -154,13 +157,17 @@ def _run(op):
         event = confirmation.record(pid, jid, {'print_authorized': True, 'plate_clear': True},
             '打印板已清洁并空置，确认打印此配件', 'PrintLab 工作台 / 操作 ' + op['id'], confirmed_at=op['confirmed_at'])
         core.approve(pid, jid, confirmation_event_id=event['id'])
-        op.update(state='dispatching', message='正在通过官方应用发送；尚未确认设备已开始')
+        op.update(state='dispatching', message='正在通过已绑定通道发送；尚未确认设备已开始')
         core.write_json(path, op)
         from . import studio_bridge
         try:
-            result = studio_bridge.dispatch(pid, jid)
+            if result['transport'].get('kind') == 'bambuddy_queue':
+                from . import queue_sender
+                result = queue_sender.dispatch(pid, jid)
+            else:
+                result = studio_bridge.dispatch(pid, jid)
         except studio_bridge.BeforeSendError:
-            op.update(state='blocked', executed=False, message='官方发送窗口准备未通过，已确认未发起发送；可重新核验')
+            op.update(state='blocked', executed=False, message='发送准备未通过，已确认未发起发送；可重新核验')
             return
         if result.get('command_sent') is not True:
             raise core.WorkflowError('发送执行器未证实已发起发送')

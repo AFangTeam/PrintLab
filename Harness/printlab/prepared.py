@@ -356,7 +356,9 @@ def check(pid, jid, *, client=None, inspector=None):
             if bindings and fresh:
                 def route():
                     # FINISH is conditionally usable only after later explicit plate confirmation.
-                    bambuddy.validate_ready(status, job['mapping'], cleared_finished=True)
+                    bambuddy.verify_machine_identity(client, job)
+                    bambuddy.validate_ready(status, job['mapping'], cleared_finished=True,
+                                           printer_model=job.get('sliced_printer_model'))
                     bambuddy.validate_slice_route(jd, job, status)
                     bambuddy.validate_native_filaments(status, job['mapping'])
                     return True
@@ -398,6 +400,7 @@ def check(pid, jid, *, client=None, inspector=None):
     return {'project_id': entry['project_id'], 'job_id': jid, 'fingerprint': fingerprint, 'checked_at': core.now(),
             'ready': not blockers, 'checks': checks, 'blockers': blockers, 'materials': quantities,
             'transport': {'kind': transport, 'developer_mode': (status or {}).get('developer_mode'),
+                          'sdcard': (status or {}).get('sdcard'),
                           'independent_dispatch_verified': False,
                           'message': '需由发送适配器另行核验可用性；此结果不代表已能独立发送'},
             'device': {k: (status or {}).get(k) for k in ('id', 'name', 'state', 'current_print')},

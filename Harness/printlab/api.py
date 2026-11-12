@@ -74,6 +74,15 @@ def print_history():
     return history.view()
 
 
+@app.get('/api/onboarding')
+def onboarding_status():
+    from . import onboarding
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        device = pool.submit(bambuddy.device)
+        inventory = pool.submit(bambuddy.inventory)
+        return onboarding.view(device.result(), inventory.result())
+
+
 @app.get("/api/projects")
 def projects():
     return {"projects": core.list_projects()}
@@ -111,6 +120,7 @@ def device():
 
 @app.get("/api/overview")
 def overview():
+    from . import onboarding
     projects = core.list_projects()
     with ThreadPoolExecutor(max_workers=2) as pool:
         a, b = pool.submit(bambuddy.device), pool.submit(bambuddy.inventory)
@@ -122,6 +132,7 @@ def overview():
     if device["state"] != "online" or device.get("stale"):
         actions.append({"title": "设备连接待核验", "detail": device["message"]})
     return {"projects": projects, "counts": counts, "device": device, "inventory": inventory,
+            "onboarding": onboarding.view(device, inventory),
             "bambuddy_url": core.config().get("bambuddy_url", "http://127.0.0.1:8017"),
             "updated_at": core.now(), "library_count": len(core.library()["documents"]), "action_items": actions}
 

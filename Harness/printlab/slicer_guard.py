@@ -1,4 +1,4 @@
-"""Offline X2D production checks. Command presence is never proof of extrusion."""
+"""Offline official-template and executable startup checks for Bambu Studio slices."""
 import importlib.util
 import json
 import re
@@ -22,8 +22,16 @@ def official_templates():
 
 
 def template_issues(settings):
-    expected = official_templates()
-    return [f'X2D official {key} differs or is missing' for key in FIELDS
+    from . import machine_profiles
+    model = machine_profiles.model_id(settings.get('printer_model'))
+    if not model:
+        return ['Machine profile must identify its target printer model']
+    if model == 'X2D':
+        expected = official_templates()
+    else:
+        profile = machine_profiles.for_settings(settings)
+        expected = {key: profile['settings'][key] for key in FIELDS}
+    return [f'{model} official {key} differs or is missing' for key in FIELDS
             if settings.get(key) != expected[key]]
 
 
@@ -114,7 +122,11 @@ def temperature_events(events, nozzles):
         if code == 'M621' and p.get('S') in range(len(nozzles)):
             active = int(p['S'])
         slot = active
-        nozzle = nozzles[slot] if slot is not None else None
+        nozzle = None
+        if slot is not None:
+            nozzle = nozzles[slot]
+        elif len(set(nozzles)) == 1:
+            nozzle = nozzles[0]
         keys = []
         if code in {'M104', 'M109'}:
             keys = ['S', 'R']
@@ -246,7 +258,7 @@ def assert_safe_archive(path, plate=1):
     try:
         result = inspect_archive(path, plate)
     except (OSError, ValueError, KeyError, zipfile.BadZipFile) as exc:
-        raise WorkflowError('X2D offline startup inspection failed: ' + str(exc)) from exc
+        raise WorkflowError('Bambu offline startup inspection failed: ' + str(exc)) from exc
     if not result['ok']:
-        raise WorkflowError('X2D offline startup rejected: ' + '; '.join(result['issues']))
+        raise WorkflowError('Bambu offline startup rejected: ' + '; '.join(result['issues']))
     return result

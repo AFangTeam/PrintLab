@@ -96,6 +96,7 @@ def main():
     p.add_argument('--params')
     p.add_argument('--output')
     p.add_argument('--preview')
+    p.add_argument('--build-envelope', help='Parent-resolved device dimensional envelope as JSON')
     argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else sys.argv[1:]
     args = p.parse_args(argv)
     if args.worker:
@@ -159,11 +160,19 @@ def main():
         raise RuntimeError('Design inputs changed during build; outputs are not verified. Rebuild a stable revision.')
     import numpy as np
     import trimesh
+    envelope = json.loads(args.build_envelope) if args.build_envelope else {
+        'known': False, 'reason': 'Device envelope was not supplied by the workspace'}
+    if envelope.get('known'):
+        dimensions = envelope.get('dimensions_mm')
+        if (not isinstance(dimensions, list) or len(dimensions) != 3
+                or any(type(n) not in {int, float} or not math.isfinite(n) or n <= 0 for n in dimensions)):
+            raise ValueError('Invalid device dimensional envelope')
     mesh = trimesh.load(out / 'model.stl', force='mesh')
     checks = {'finite': bool(np.isfinite(mesh.vertices).all()), 'watertight': bool(mesh.is_watertight),
               'consistent_winding': bool(mesh.is_winding_consistent), 'positive_volume': bool(mesh.volume > 0),
-              'nonzero_dimensions': bool((mesh.extents > 0).all()),
-              'within_conservative_x2d_volume': bool((mesh.extents <= [235.5,256,256]).all())}
+              'nonzero_dimensions': bool((mesh.extents > 0).all())}
+    if envelope.get('known'):
+        checks['within_configured_print_volume'] = bool((mesh.extents <= envelope['dimensions_mm']).all())
     expected = params.get('expected_dimensions_mm')
     if expected:
         checks['expected_dimensions'] = bool(np.allclose(mesh.extents, expected, atol=0.15))
@@ -171,6 +180,7 @@ def main():
     data = {'engine':args.engine,'revision':args.revision,'built_at':datetime.now(timezone.utc).isoformat(),
             'units':{'parameters':'mm','geometry_engine':'mm' if args.engine == 'cadquery' else 'm','stl':'mm','glb':'m'},'dimensions_mm':[round(float(x),3) for x in mesh.extents],
             'volume_mm3':round(float(mesh.volume),3),'checks':checks,'verified':all(checks.values()),
+            'target_build_envelope': envelope,
             'verification_limits':['No full wall-thickness or mechanical load analysis','Physical fit and print quality require a test print'],
             'tools':version,'source_sha256':{str(f.relative_to(project)):digest(f) for f in sorted(src.rglob('*')) if f.is_file() and '__pycache__' not in f.parts},
             'artifacts':{str(f.relative_to(project)):digest(f) for d in [out,preview] for f in sorted(d.glob('*')) if f.is_file()}}
