@@ -1,21 +1,19 @@
 # 验证记录
 
-## v0.3.0 候选：尚未完成最终验收
+## v0.3.0 三平台验收
 
-本节记录候选分支，不表示 v0.3.0 已发布。以下旧版记录仅适用于各自列出的提交；使用最新版时优先查本节和 [复刻审查](REPRODUCIBILITY_AUDIT.md)。
+2026-11-12，候选 `5416518` 的 PR 合并预览 `f997fc0` 在 GitHub 托管 macOS、Windows Server 2022 和 Windows Server 2025 虚拟机全部通过。报告和安装包已下载读回。[云端记录](https://github.com/AFangTeam/PrintLab/actions/runs/43144025772)
 
-| 范围 | 已取得的证据 | 仍需核验 |
-| --- | --- | --- |
-| 干净安装与独立 CAD | `f0f8d87` 在 macOS、Windows Server 2022/2025 完成 ZIP 安装、真实 Text-to-CAD 建模与 STEP/STL 导出 | 最新候选仍待完整回归；宿主插件、CAD 查看器未验收 |
-| 待打印按钮 | 本机真实 Chromium 完成检查、清板确认、提交和刷新后不重复发送；`d3ac171` 的 Mac、Windows Server 2025 浏览器步骤通过 | 设备和桌面发送边界为模拟；不证明真实设备启动。Windows 提供官方 Studio 手动交接 |
-| Bambuddy 独立安装 | 本机及云端完成独立服务安装和六个真实只读 API 检查 | Windows Server 2022 清理时文件占用，修复进程树退出后仍待 Windows 回归 |
-| 官方 Studio | 本机独立下载固定版、校验 SHA-256、真实切片并通过公开文件检查 | Windows 最新候选待运行；GUI 登录、网络、桌面权限和设备现场检查未覆盖 |
+- Mac Python 测试 377 通过、9 跳过。两台 Windows 各 363 通过、23 跳过。跳过项对应平台专属检查及需要用户设备、配置和私人模型的集成检查。
+- 从源码 ZIP 在中文空格目录全新安装，检查 CLI、初始化保留配置、真实公开文件检查器、项目创建与跨进程接续。
+- 独立安装 Text-to-CAD 0.11.9，真实生成临时几何，核对体积、有效性以及 STEP/STL 导出。
+- 独立安装 Bambuddy v1.2.5.7，通过六个真实只读接口，撤销测试 key，停止服务并删除临时数据。
+- 独立下载官方 Bambu Studio 02.08.02.61，校验下载哈希，解析官方 X2D 配置，真实切片并完成启动指令审查及公开文件检查。
+- 真实 Chromium 验收工作台和待打印页。Mac 检查、清板确认、提交与刷新后单次发送记录通过。Windows 显示官方 Studio 手动交接路径。设备和 GUI 发送边界采用模拟，页面脚本错误为零。
 
-[已通过的三平台基线](https://github.com/AFangTeam/PrintLab/actions/runs/43092718752) · [发现 Windows 清理问题的运行](https://github.com/AFangTeam/PrintLab/actions/runs/43094517244) · [候选 PR](https://github.com/AFangTeam/PrintLab/pull/2)
+本轮修复了 Windows 临时 SQLite 文件在服务退出后仍被占用的清理失败。清理会等待最多 15 秒，持续失败仍使验收失败。此前 GitHub 排队状态异常通过服务恢复后手动重新触发解除。
 
-本次观测到 GitHub 报告下载返回 502、报告上传返回 HTML，以及后续候选长期排队。不能将这些状态写成测试通过，也没有据此认定 GitHub 官方宣布了服务事故。最新结果以 PR 检查记录为准。
-
-云端 Windows 是 Server 虚拟机，不能替代 Windows 10/11 桌面验证。所有测试生成的几何仅用于验收，不作为模型资源分享。测试没有联系真实打印机，也没有启动实体打印。
+云端 Windows 使用 Server 虚拟机。Windows 10/11 桌面、CAD 宿主插件与查看器、GUI 登录和权限、真实打印机连接及实体打印仍需现场验证。测试生成物仅供临时验收。
 
 ## v0.2.0 Windows 与 Mac
 
