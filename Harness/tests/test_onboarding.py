@@ -136,7 +136,7 @@ def test_two_roles_normalize_workspace_paths_and_reach_ready(root):
         onboarding.record_role(role, receipt, onboarding.state()['version'])
     assert onboarding.view()['team_ready'] is True
     with pytest.raises(core.WorkflowError, match='another workspace'):
-        onboarding.record_role('Sarah', {**receipt, 'context_paths': ['/other/AGENTS.md']}, onboarding.state()['version'])
+        onboarding.record_role('Sarah', {**receipt, 'context_paths': [str(root.parent / 'other' / 'AGENTS.md')]}, onboarding.state()['version'])
     with pytest.raises(core.WorkflowError, match='inside'):
         onboarding.record_role('Sarah', {**receipt, 'context_paths': ['../AGENTS.md']}, onboarding.state()['version'])
 
