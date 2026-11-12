@@ -69,6 +69,10 @@ def main():
                                ('process', f'0.20mm Standard @BBL {process}'),
                                ('filament', f'Bambu PLA Basic @BBL {filament}')]:
                 write_candidate(Path(args.profiles) / 'BBL' / kind / (name + '.json'), presets / (kind + '.json'))
+            editable = call('export-project', project['id'], '--machine', str(presets / 'machine.json'),
+                            '--process', str(presets / 'process.json'), '--filament', str(presets / 'filament.json'),
+                            '--bed-type', 'Textured PEI Plate')
+            assert editable['printer_model'] == f'Bambu Lab {model}' and not editable['sliced']
             job = call('slice', project['id'], '--machine', str(presets / 'machine.json'),
                        '--process', str(presets / 'process.json'), '--filament', str(presets / 'filament.json'),
                        '--bed-type', 'Textured PEI Plate')
@@ -80,9 +84,11 @@ def main():
             for name in ('build.json', 'model.stl'):
                 shutil.copy2(directory / 'Exports/v001' / name, evidence / name)
             shutil.copy2(directory / 'Print' / job['id'] / job['artifact'], evidence / 'offline-probe.gcode.3mf')
+            shutil.copy2(editable['path'], evidence / 'editable-project.3mf')
             result = {'model': model, 'build_verified': build['verified'],
                       'envelope_mm': build['target_build_envelope']['dimensions_mm'],
                       'slice_model': job['sliced_printer_model'], 'startup_check': job['startup_audit']['ok'],
+                      'editable_project_verified': editable['studio_project_config_present'],
                       'trial_only': job['trial_only'], 'printer_contacted': False}
             results.append(result)
             print(json.dumps(result), flush=True)

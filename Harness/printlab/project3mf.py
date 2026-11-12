@@ -1,4 +1,4 @@
-"""Export a Bambu Studio project from a reviewed geometry-only 3MF.
+"""Export a Bambu Studio project from verified single-material STL or multipart 3MF.
 
 The controlled core file remains the slicer's trusted input. This separate
 artifact is for opening/editing in Studio; it is never a print approval.
@@ -12,7 +12,7 @@ import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
 
-from . import core, three_mf, platforms
+from . import core, three_mf, platforms, machine_profiles
 
 
 def inspect(path: Path, filament_count: int | None = None) -> dict:
@@ -53,8 +53,8 @@ def inspect(path: Path, filament_count: int | None = None) -> dict:
                         raise core.WorkflowError('Native 3MF lost a valid part-to-filament assignment')
             if not assignments or any(x < 1 or x > len(filaments) for x in assignments):
                 raise core.WorkflowError('Native 3MF lost a valid part-to-filament assignment')
-            if 'X2D' not in str(settings.get('printer_model', '')).upper():
-                raise core.WorkflowError('Native 3MF is not configured for X2D')
+            if not isinstance(settings.get('printer_model'), str) or not settings['printer_model'].strip():
+                raise core.WorkflowError('Native 3MF must identify its target printer model')
             return {'path': str(path), 'sha256': core.digest(path), 'printer_model': settings['printer_model'],
                     'bed_type': settings.get('curr_bed_type'), 'filaments': filaments,
                     'sliced': False, 'studio_project_config_present': True}
@@ -75,16 +75,24 @@ def export(pid, revision, machine, process, filaments, bed_type):
         raise core.WorkflowError('Export requires a verified model build')
     core.validate_build_lineage(p, revision, manifest)
     source = out_dir / 'model.3mf'
-    if manifest.get('artifacts', {}).get(f'Exports/{revision}/model.3mf') != core.digest(source):
-        raise core.WorkflowError('Core 3MF must match the verified build manifest')
-    source_info = three_mf.inspect(source, len(filaments))
+    if source.is_file():
+        source_info = three_mf.inspect(source, len(filaments))
+    else:
+        if len(filaments) != 1:
+            raise core.WorkflowError('Multiple materials require a reviewed multipart 3MF with explicit assignments')
+        source = out_dir / 'model.stl'
+        source_info = {'kind': 'verified_single_material_stl', 'filament_count': 1,
+                       'dimensions_mm': manifest.get('dimensions_mm')}
+    if manifest.get('artifacts', {}).get(source.relative_to(p).as_posix()) != core.digest(source):
+        raise core.WorkflowError('Geometry must match the verified build manifest')
     profiles = [Path(x).resolve() for x in [machine, process, *filaments]]
     for path in profiles:
         data = core.read_json(path)
         if not isinstance(data, dict) or data.get('inherits') or data.get('include'):
             raise core.WorkflowError('Export requires complete resolved profiles')
-    if 'X2D' not in str(core.read_json(profiles[0]).get('printer_model', '')).upper():
-        raise core.WorkflowError('Machine profile must target X2D')
+    target_model = core.read_json(profiles[0]).get('printer_model')
+    if not isinstance(target_model, str) or not target_model.strip():
+        raise core.WorkflowError('Machine profile must identify its target printer model')
     slicer = Path(core.config().get('slicer_path', platforms.tool_defaults()['slicer_path']))
     if not slicer.is_file():
         raise core.WorkflowError('Bambu Studio executable not available')
@@ -94,6 +102,8 @@ def export(pid, revision, machine, process, filaments, bed_type):
         raise core.WorkflowError('Native project already exists; create a new revision')
     temporary = out_dir / '.bambu-project-building.3mf'
     with core.lock(core.read_json(p / 'project.json')['id']):
+        if output.exists() or receipt.exists():
+            raise core.WorkflowError('Native project already exists; create a new revision')
         core.validate_build_lineage(p, revision, manifest)
         try:
             with tempfile.TemporaryDirectory(prefix='printlab-project-') as tmp:
@@ -108,6 +118,8 @@ def export(pid, revision, machine, process, filaments, bed_type):
             if run.returncode or not temporary.is_file():
                 raise core.WorkflowError('Bambu Studio could not export the full project')
             result = inspect(temporary, len(filaments))
+            if machine_profiles.model_id(result['printer_model']) != machine_profiles.model_id(target_model):
+                raise core.WorkflowError('Bambu Studio changed the selected printer model')
             if result['bed_type'] != bed_type:
                 raise core.WorkflowError('Bambu Studio did not preserve the selected build plate')
             core.validate_build_lineage(p, revision, manifest)

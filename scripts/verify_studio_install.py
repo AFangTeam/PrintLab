@@ -13,7 +13,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT/'Harness'))
 from resolve_bambu_profiles import write_candidate
-from printlab import core, inspection, slicer_guard
+from printlab import core, inspection, slicer_guard, project3mf
 
 VERSION = '02.08.02.61'
 ASSETS = {
@@ -55,6 +55,19 @@ def main():
                 executable = executables[0]
                 profiles = executable.parent/'resources/profiles'
             result = slice_probe(root, executable, profiles, output)
+            matrix = []
+            for model, process, filament in [('A1', 'A1', 'A1'), ('A1 mini', 'A1M', 'A1M'),
+                    ('P1S', 'X1C', 'P1S 0.4 nozzle'), ('X1 Carbon', 'X1C', 'X1C')]:
+                directory = root / model.replace(' ', '-')
+                evidence = output / 'studio-machine-matrix' / model.replace(' ', '-')
+                directory.mkdir()
+                evidence.mkdir(parents=True, exist_ok=True)
+                row = slice_probe(directory, executable, profiles, evidence, [
+                    ('machine', f'Bambu Lab {model} 0.4 nozzle'),
+                    ('process', f'0.20mm Standard @BBL {process}'),
+                    ('filament', f'Bambu PLA Basic @BBL {filament}')])
+                matrix.append({'model': model, **row})
+            result['additional_machine_checks'] = matrix
             result.update(ok=True, os=sys.platform, studio_version=VERSION, package_sha256=expected,
                           printer_contacted=False, gui_login_verified=False,
                           installation='Official DMG mounted read-only' if mounted else 'Official portable ZIP extracted')
@@ -84,6 +97,15 @@ def slice_probe(root, executable, profiles, output, selected=None):
             coordinates = [coordinate for index in face for coordinate in vertices[index]]
             mesh.write(struct.pack('<12fH', 0, 0, 0, *coordinates, 0))
     artifact = root/'probe.gcode.3mf'
+    editable = root / 'editable-project.3mf'
+    export_command = [str(executable), '--datadir', str(root / 'settings'), '--load-settings',
+                      str(root / 'machine.json') + ';' + str(root / 'process.json'), '--load-filaments',
+                      str(root / 'filament.json'), '--export-3mf', str(editable), str(root / 'probe.stl')]
+    with (output / 'studio-editable.log').open('w', encoding='utf-8') as log:
+        subprocess.run(export_command, check=True, stdout=log, stderr=log, timeout=180)
+    exported = project3mf.inspect(editable, 1)
+    expected_model = json.loads((root / 'machine.json').read_text(encoding='utf-8'))['printer_model']
+    assert exported['printer_model'] == expected_model and not exported['sliced']
     command = [str(executable), '--datadir', str(root/'settings'), '--load-settings',
                str(root/'machine.json')+';'+str(root/'process.json'), '--load-filaments',
                str(root/'filament.json'), '--arrange', '1', '--slice', '1',
@@ -103,7 +125,9 @@ def slice_probe(root, executable, profiles, output, selected=None):
         inspected = inspection.inspect(root, {'artifact': artifact.name,
                                               'artifact_sha256': core.digest(artifact), 'plate': 1})
         assert inspected['ok'] and inspected['executed'] is False
-        return {'slice': metadata, 'startup_audit': audit, 'public_file_inspection': True}
+        return {'slice': metadata, 'startup_audit': audit, 'public_file_inspection': True,
+                'editable_project_check': {'printer_model': exported['printer_model'],
+                                           'sha256': exported['sha256'], 'verified': True}}
     finally:
         core.ROOT = previous_root
 
