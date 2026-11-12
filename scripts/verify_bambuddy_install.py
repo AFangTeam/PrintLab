@@ -1,4 +1,5 @@
 """Install upstream Bambuddy separately and verify read-only integration in isolation."""
+from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
@@ -16,10 +17,29 @@ VERSION = 'v1.2.5.7'
 COMMIT = '188df76f8a7342542c0876dac68990ea2a8c8313'
 
 
+@contextmanager
+def temporary_workspace():
+    directory = tempfile.TemporaryDirectory(prefix='PrintLab Bambuddy 中文 ')
+    try:
+        yield directory.name
+    finally:
+        # Windows can retain SQLite mapped-file handles briefly after taskkill.
+        # Keep cleanup mandatory, with a bounded wait for handle release.
+        deadline = time.monotonic() + 15
+        while True:
+            try:
+                directory.cleanup()
+                break
+            except PermissionError:
+                if os.name != 'nt' or time.monotonic() >= deadline:
+                    raise
+                time.sleep(0.5)
+
+
 def main():
     output = ROOT / 'Runtime/verification'
     output.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix='PrintLab Bambuddy 中文 ') as temporary:
+    with temporary_workspace() as temporary:
         root = Path(temporary)
         source = root / 'upstream'
         with (output/'bambuddy-install.log').open('w', encoding='utf-8') as log:
@@ -96,6 +116,8 @@ def probe(source, python, root, output, log):
     finally:
         core.ROOT = previous_root
         native._terminate_group(process)
+        log.write(f"Bambuddy process exit code: {process.returncode}\n")
+        log.flush()
 
 
 if __name__ == '__main__':
