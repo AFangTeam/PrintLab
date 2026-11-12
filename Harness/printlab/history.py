@@ -232,19 +232,9 @@ def view(force=False, client_factory=None):
             for archive in archives:
                 archive['_printlab_photo_url'] = archive_photo(client, archive)
                 archive['_printlab_model_preview'] = model_preview(archive, jobs)
-                saved = recovered.get(str(archive['id']), {})
-                raw = (archive.get('extra_data') or {}).get('_print_data', {}).get('raw_data', {})
-                if (not archive['_printlab_model_preview'] and saved.get('printer_id') == archive.get('printer_id')
-                    and ((saved.get('kind') == 'reference_model' and saved.get('archive_name') == archive.get('print_name'))
-                         or (str(raw.get('profile_id')) == saved.get('profile_id')
-                             and str(raw.get('plate_idx') or raw.get('plate_id') or 1) == saved.get('plate')))):
-                    url = saved.get('url', '')
-                    if url.startswith('/api/documents/Library/References/PrintHistory/CloudPreviews/'):
-                        try:
-                            core.safe_path(core.ROOT, url.removeprefix('/api/documents/'))
-                            archive['_printlab_model_preview'] = {k: saved.get(k) for k in ('url', 'kind', 'profile_id', 'plate')}
-                        except core.WorkflowError:
-                            pass
+                if not archive['_printlab_model_preview']:
+                    from .preview_recovery import saved_preview
+                    archive['_printlab_model_preview'] = saved_preview(recovered, archive)
             items = combine(archives, runs, jobs)
             # A stale unfinished archive must not look like a live running print.
             active = [r for r in items if r['status'] in {'printing', 'running', 'paused'}]
@@ -278,7 +268,7 @@ def view(force=False, client_factory=None):
                                    'all_recorded_pages_loaded': True, 'all_lifetime_prints_verified': False,
                                    'cloud_history_synced': False},
                       'recovery': recovery,
-                      'message': '已读取本机保存的全部分页记录；未捕获的旧任务及云端完整历史尚未核实。'}
+                      'message': '已读取 Bambuddy 保存的全部分页记录。账号旧历史导入已排除在本轮开发范围外。'}
             core.write_json(cache_path, result)
             return result
         except (httpx.HTTPError, core.WorkflowError, OSError, ValueError, KeyError, TypeError):

@@ -29,6 +29,11 @@ def main():
         with zipfile.ZipFile(bundle) as archive:
             assert all(n.startswith('PrintLab/') and '..' not in Path(n).parts for n in archive.namelist())
             assert not any(n.startswith(('PrintLab/Runtime/','PrintLab/Project/')) for n in archive.namelist())
+            required = {'Harness/printlab/preview_recovery.py', 'Harness/tools/recover_studio_covers.py',
+                        'docs/PREVIEW_RECOVERY.md', 'Harness/tests/test_preview_recovery.py'}
+            assert required <= {name.removeprefix('PrintLab/') for name in archive.namelist()}
+            assert not any('/PrintHistory/' in name or name.endswith(('.3mf', '.stl', '.step', '.blend'))
+                           or '/node_modules/' in name or '/vendor/' in name for name in archive.namelist())
             archive.extractall(temporary)
             if sys.platform != 'win32':
                 for info in archive.infolist():
@@ -39,7 +44,7 @@ def main():
         cli = ['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', str(target / 'Harness/bin/printlab.ps1')] if sys.platform == 'win32' else [str(target / 'Harness/bin/printlab')]
         subprocess.run([*cli, 'context'], cwd=target, env=env, check=True, timeout=60, stdout=subprocess.DEVNULL)
         # Real default inspector, not an injected successful return.
-        subprocess.run([str(python), '-m', 'pytest', 'Harness/tests/test_public_inspector.py', '-q'],
+        subprocess.run([str(python), '-m', 'pytest', 'Harness/tests/test_public_inspector.py', 'Harness/tests/test_preview_recovery.py', '-q'],
                        cwd=target, env=env, check=True, timeout=180)
         subprocess.run([str(python), 'scripts/verify_onboarding.py'], cwd=target, env=env, check=True, timeout=120)
         config = target / 'Runtime/config.json'

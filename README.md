@@ -8,9 +8,11 @@ PrintLab 是阿方（Eric）在 E41 视频中使用的 3D 打印工作台与协�
 
 ## 历史与收藏的同步范围
 
-当前发布版汇总 Bambuddy 已捕获的打印记录，并展示本地维护的灵感收藏。安装前的 Bambu Cloud 历史和 MakerWorld 账号收藏自动同步仍待实现。需要保留 Handy、云打印和账号收藏的使用者，应在安装时明确这些需求，按同步排查核对已有功能。
+当前发布版汇总 Bambuddy 已捕获的打印记录，并展示本地维护的灵感收藏。安装前的 Bambu Cloud 历史和 MakerWorld 账号收藏导入已排除在本轮开发范围外。需要保留 Handy、云打印和账号收藏的使用者，应在安装时明确这些需求，按同步排查核对已有功能。
 
-[历史与收藏同步排查](docs/SYNC_TROUBLESHOOTING.md)
+已有档案缺图时，可用 `printlab history-recover` 从 Mac Studio 缓存或明确绑定的本地 PNG / 3MF 恢复。
+
+[模型预览恢复](docs/PREVIEW_RECOVERY.md) · [历史与收藏来源说明](docs/SYNC_TROUBLESHOOTING.md)
 
 ## 从这里开始
 

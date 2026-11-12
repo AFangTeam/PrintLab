@@ -26,6 +26,12 @@ def parser():
     chk.add_argument('job')
     history_parser = sub.add_parser('history', help='Read all captured print history, including external prints; never prints')
     history_parser.add_argument('--refresh', action='store_true')
+    recovery = sub.add_parser('history-recover', help='Recover previews for captured archives; dry-run by default')
+    recovery.add_argument('--printer-id', type=int, help='Defaults to the configured Bambuddy printer')
+    source = recovery.add_mutually_exclusive_group()
+    source.add_argument('--cache-dir', help='macOS CFURL/WebKit cache root or a copy of that cache')
+    source.add_argument('--manifest', help='JSON binding local PNG/3MF files to archive, device, profile and plate')
+    recovery.add_argument('--apply', action='store_true', help='Persist new previews while preserving existing entries')
     taste = sub.add_parser("taste", help="Archive full image-choice rounds; never prints or confirms inferred preferences")
     taste_commands = taste.add_subparsers(dest="taste_command", required=True)
     taste_record = taste_commands.add_parser("record")
@@ -302,6 +308,10 @@ def main(argv=None):
                 result = shop.supplier(a.item, a.status, a.url, a.evidence, a.expect)
             else:
                 result = shop.fulfill(a.project, a.note, a.expect)
+        elif a.command == 'history-recover':
+            from . import preview_recovery
+            result = preview_recovery.recover(printer_id=a.printer_id, cache_dir=a.cache_dir,
+                                              manifest=a.manifest, apply=a.apply)
         elif a.command == 'history':
             from . import history
             result = history.view(force=a.refresh)
