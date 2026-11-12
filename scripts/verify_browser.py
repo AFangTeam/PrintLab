@@ -1,5 +1,8 @@
 """Verify the actual server and browser using a temporary synthetic project."""
 import json
+import datetime as dt
+import io
+from PIL import Image
 import os
 from pathlib import Path
 import platform
@@ -32,6 +35,24 @@ def main():
         created = subprocess.check_output([*command, 'new', 'Windows 中文工作流验收',
                                           '--brief', '验证用途与尺寸记录'], env=environment)
         project = json.loads(created)
+        # Synthetic recovered images exercise the real document route and Gallery rendering.
+        preview_dir = workspace / 'Library/References/PrintHistory/CloudPreviews'
+        preview_dir.mkdir(parents=True)
+        image = io.BytesIO()
+        Image.new('RGB', (8, 8), 'red').save(image, format='PNG')
+        (preview_dir / 'fixture.png').write_bytes(image.getvalue())
+        config_path = workspace / 'Runtime/config.json'
+        config = {}
+        config['printer_id'] = 2
+        config_path.write_text(json.dumps(config), encoding='utf-8')
+        rows = [{'id': f'archive-{i}', 'archive_id': i, 'printer_id': 2, 'name': kind,
+                 'status': 'completed', 'is_print_event': True,
+                 'model_preview': {'kind': kind, 'url': '/api/documents/Library/References/PrintHistory/CloudPreviews/fixture.png'}}
+                for i, kind in enumerate(['cloud_plate', 'reference_plate', 'sliced_plate'], 1)]
+        cache = workspace / 'Runtime/history/latest.json'
+        cache.parent.mkdir(parents=True)
+        cache.write_text(json.dumps({'printer_id': 2, 'updated_at': dt.datetime.now(dt.timezone.utc).isoformat(),
+                                     'items': rows, 'counts': {'prints': 3}, 'coverage': {'cloud_history_synced': False}}), encoding='utf-8')
         with socket.socket() as listener:
             listener.bind(('127.0.0.1', 0))
             port = listener.getsockname()[1]
@@ -58,6 +79,12 @@ def main():
                 page.on('pageerror', lambda error: failures.append(str(error)))
                 page.goto(base)
                 page.get_by_role('heading', name='把想法，做成实物。', exact=True).wait_for()
+                page.get_by_role('heading', name='我的打印图册', exact=True).scroll_into_view_if_needed()
+                page.get_by_text('配置板预览', exact=True).wait_for()
+                page.get_by_text('原模型参考', exact=True).wait_for()
+                page.get_by_text('切片模型预览', exact=True).wait_for()
+                page.wait_for_function("Array.from(document.querySelectorAll('.gallery-cover img')).filter(i => i.complete && i.naturalWidth === 8).length === 3")
+                page.screenshot(path=str(output / 'recovered-previews.png'), full_page=True, animations='disabled')
                 checked = []
                 for route, title in [('projects', '项目图册'), ('prepared', '待打印'),
                                      ('history', '每一次打印，都在这里。'), ('favorites', '灵感收藏'),
@@ -81,7 +108,7 @@ def main():
                 assert failures == [], failures
                 browser.close()
             result = {'ok': True, 'os': platform.platform(), 'python': sys.version,
-                      'pages': checked, 'unicode_project': True, 'browser_errors': failures,
+                      'pages': checked, 'unicode_project': True, 'recovered_preview_images': 3, 'browser_errors': failures,
                       'printing': 'synthetic data only'}
             (output / 'browser.json').write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding='utf-8')
             print(json.dumps(result, ensure_ascii=False))

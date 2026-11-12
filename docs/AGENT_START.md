@@ -95,3 +95,7 @@ Runtime/venv/bin/python scripts/verify_onboarding.py
 连接模式与手机/电脑/Agent 的具体路径见 [连接与控制指南](CONNECTIONS.md)。
 
 Text-to-CAD 的固定版本、Mac/Windows 安装命令、宿主接入和最小建模验收见 [CAD 安装指南](CAD_SETUP.md)。
+
+## 既有终端与账号同步
+
+安装先记录使用者正在使用的 Handy、Studio、Bambu Cloud 和 MakerWorld 功能，保留其账号登录、网络模式与现有凭据权限。为 PrintLab 新建专用读取凭据。用户需要云功能时，先说明 LAN Only / Developer Mode 的具体影响并确认所选路线。按 `docs/SYNC_TROUBLESHOOTING.md` 核对历史与收藏的实际来源及覆盖时间，核对原应用功能仍然可用。账号旧历史和 MakerWorld 收藏导入已排除在本轮开发范围外。已有档案缺图时，按 `docs/PREVIEW_RECOVERY.md` 使用 `printlab history-recover`，记录来源和恢复数量。

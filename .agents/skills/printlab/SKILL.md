@@ -19,3 +19,7 @@ license: PolyForm Noncommercial 1.0.0; see the PrintLab repository LICENSE.md an
 Mac CLI：`./Harness/bin/printlab`。Windows CLI：`powershell -NoProfile -ExecutionPolicy Bypass -File .\Harness\bin\printlab.ps1`。先查当前帮助再选择参数。
 
 报告实际工作空间、启动地址、工具版本、已验证能力和下一步。区分软件实测、模拟设备测试、实机验证；缺少能力应报告具体安装或配置步骤，不写成已完成。
+
+## 既有终端与账号同步
+
+安装先记录使用者正在使用的 Handy、Studio、Bambu Cloud 和 MakerWorld 功能，保留其账号登录、网络模式与现有凭据权限。为 PrintLab 新建专用读取凭据。用户需要云功能时，先说明 LAN Only / Developer Mode 的具体影响并确认所选路线。按 `docs/SYNC_TROUBLESHOOTING.md` 核对历史与收藏的实际来源及覆盖时间，核对原应用功能仍然可用。账号旧历史和 MakerWorld 收藏导入已排除在本轮开发范围外。已有档案缺图时，按 `docs/PREVIEW_RECOVERY.md` 使用 `printlab history-recover`，记录来源和恢复数量。
