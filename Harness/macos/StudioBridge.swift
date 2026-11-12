@@ -127,6 +127,47 @@ func clickToken(_ shot:[String:Any],_ text:String) throws {
     guard let down=CGEvent(mouseEventSource:nil,mouseType:.leftMouseDown,mouseCursorPosition:p,mouseButton:.left),let up=CGEvent(mouseEventSource:nil,mouseType:.leftMouseUp,mouseCursorPosition:p,mouseButton:.left) else {try fail("Cannot construct mouse event")}
     down.post(tap:.cghidEventTap);up.post(tap:.cghidEventTap)
 }
+func printerRefreshToken(_ pid: pid_t, _ shot: [String:Any]) throws -> [String:Any] {
+    let app = AXUIElementCreateApplication(pid)
+    let dialogs = (attr(app, kAXWindowsAttribute) as? [AXUIElement] ?? []).filter {
+        (attr($0, kAXTitleAttribute) as? String) == "发送打印任务"
+    }
+    guard dialogs.count == 1, let bounds = shot["bounds"] as? [String:Double],
+          let left = bounds["X"], let top = bounds["Y"],
+          let width = bounds["Width"], let height = bounds["Height"], width > 0, height > 0 else {
+        try fail("Exact printer dialog geometry is unavailable")
+    }
+    var candidates: [[String:Any]] = []
+    func visit(_ element: AXUIElement) {
+        if (attr(element, kAXRoleAttribute) as? String) == kAXButtonRole,
+           (attr(element, kAXTitleAttribute) as? String ?? "").isEmpty,
+           (attr(element, kAXHelpAttribute) as? String ?? "").isEmpty,
+           let position = attr(element, kAXPositionAttribute), CFGetTypeID(position) == AXValueGetTypeID(),
+           let size = attr(element, kAXSizeAttribute), CFGetTypeID(size) == AXValueGetTypeID() {
+            var point = CGPoint.zero
+            var extent = CGSize.zero
+            if AXValueGetValue(position as! AXValue, .cgPoint, &point),
+               AXValueGetValue(size as! AXValue, .cgSize, &extent) {
+                let x = (point.x-left)/width, y = (point.y-top)/height
+                let w = extent.width/width, h = extent.height/height
+                // Fixed, validated Studio layout. Require the entire small
+                // control inside the right side of the printer card.
+                if x > 0.65, x+w < 0.85, y > 0.25, y+h < 0.40,
+                   w > 0, w < 0.10, h > 0, h < 0.10 {
+                    candidates.append(["text":"printer-refresh", "confidence":1.0,
+                                       "x":x, "y":y, "width":w, "height":h])
+                }
+            }
+        }
+        for child in attr(element, kAXChildrenAttribute) as? [AXUIElement] ?? [] {
+            visit(child)
+        }
+    }
+    visit(dialogs[0])
+    guard candidates.count == 1 else { try fail("Unique printer refresh control absent") }
+    return candidates[0]
+}
+
 do {
     let args=try ipcArguments(Array(CommandLine.arguments.dropFirst()));let mode=args.first ?? "probe"
     switch mode {
@@ -144,6 +185,26 @@ do {
         let shot=try snapshot(pid,args[2],raise:mode != "snapshot")
         if mode=="open-panel" { guard args[2].hasSuffix(".gcode"),!args[2].contains("*") else {try fail("Only exact sliced job preview may open send panel")};try clickToken(shot,"打印单盘");emit(["ok":true,"opened_panel":true,"sent":false]) }
         else {emit(shot)}
+    case "refresh-printer":
+        guard args.count == 4, let pid = Int32(args[1]), args[2].hasSuffix(".gcode"),
+              !args[2].contains("*"), !args[3].isEmpty else {
+            try fail("Expected pid, exact job title and printer display name")
+        }
+        let shot = try snapshot(pid, "发送打印任务", raise:true)
+        let tokens = shot["tokens"] as? [[String:Any]] ?? []
+        let texts = tokens.compactMap { $0["text"] as? String }
+        let models = texts.filter({$0.lowercased().hasPrefix("bambu lab ")}).map({$0.lowercased()})
+        guard Set(texts).isDisjoint(with:["允许", "不允许", "打开系统设置"]),
+              texts.filter({$0.trimmingCharacters(in:CharacterSet(charactersIn:" /")) == args[2]}).count == 1,
+              texts.filter({$0 == args[3]}).count == 1,
+              models.count == 1, ["bambu lab x2d 0.4mm", "bambu lab x2d 0.4/0.4mm"].contains(models[0]) else {
+            try fail("Exact job and printer identity are not visible; no refresh clicked")
+        }
+        var controlShot = shot
+        controlShot["tokens"] = [try printerRefreshToken(pid, shot)]
+        try clickToken(controlShot, "printer-refresh")
+        RunLoop.current.run(until:Date(timeIntervalSinceNow:1))
+        emit(try snapshot(pid, "发送打印任务"))
     case "prepare-options":
         guard args.count==3,let pid=Int32(args[1]),args[2].hasSuffix(".gcode"),!args[2].contains("*") else {
             try fail("Expected pid and exact sliced job title")

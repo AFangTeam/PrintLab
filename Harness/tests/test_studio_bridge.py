@@ -41,6 +41,28 @@ class StudioBridgeTests(unittest.TestCase):
             job=copy.deepcopy(self.job);job['mapping'][field]=value
             self.assertTrue(bridge._job_supported(job))
 
+    def test_observed_model_case_and_slot_arrow_are_supported(self):
+        shot = copy.deepcopy(self.shot)
+        next(t for t in shot['tokens'] if t['text'] == 'Bambu Lab X2D 0.4/0.4mm')['text'] = 'Bambu Lab x2D 0.4/0.4mm'
+        slot = next(t for t in shot['tokens'] if t['text'].startswith('B1'))
+        slot['text'] = 'B1Y'
+        self.assertEqual(bridge.validate_snapshot(shot, self.job)['slot'], 'B1')
+        slot['text'] = 'B1Z'
+        with self.assertRaisesRegex(core.WorkflowError, 'AMS'):
+            bridge.validate_snapshot(shot, self.job)
+        slot['text'] = 'A3Y'
+        with self.assertRaisesRegex(core.WorkflowError, 'AMS'):
+            bridge.validate_snapshot(shot, self.job)
+
+    def test_missing_studio_display_name_blocks_capability(self):
+        observed = {'studio_version': bridge.STUDIO_VERSION, 'accessibility': True,
+                    'screen_capture': True, 'session_on_console': True, 'screen_locked': False,
+                    'helper_bundle_id': bridge.HELPER_BUNDLE_ID}
+        with patch.object(bridge, 'display_name', side_effect=core.WorkflowError('missing studio_printer_name')), patch.object(bridge, '_run', return_value=observed):
+            result = bridge.capability()
+            self.assertFalse(result['available'])
+            self.assertIn('studio_printer_name', result['message'])
+
     def test_background_window_and_bad_capture_geometry_fail(self):
         for field,value in [('active',False),('width',3840),('title','other')]:
             shot=copy.deepcopy(self.shot);shot[field]=value
@@ -69,20 +91,29 @@ class StudioBridgeTests(unittest.TestCase):
                 bridge.validate_snapshot(shot, self.job)
 
     def test_prepare_inspects_before_changing_options(self):
-        for scenario in ['already_correct', 'timelapse_on', 'wrong_job', 'overlay']:
+        for scenario in ['already_correct', 'timelapse_on', 'wrong_job', 'overlay',
+                         'incomplete_device', 'incomplete_device_timelapse',
+                         'refresh_still_incomplete', 'wrong_device', 'wrong_model']:
             with self.subTest(scenario=scenario), tempfile.TemporaryDirectory() as temporary:
                 directory = Path(temporary)
                 job = dict(self.job, artifact='test.gcode.3mf', artifact_sha256='expected')
                 (directory / 'job.json').write_text(json.dumps(job))
                 (directory / job['artifact']).write_bytes(b'test-only artifact')
                 shot = copy.deepcopy(self.shot)
-                if scenario == 'timelapse_on':
+                if scenario in ['timelapse_on', 'incomplete_device_timelapse']:
                     token = next(t for t in shot['tokens'] if t['text'] == '关闭' and t['x'] < .5 and t['y'] < .79)
                     token['green_pixels'] = 0
                 if scenario == 'wrong_job':
                     next(t for t in shot['tokens'] if t['text'].startswith(job['id']))['text'] = 'J20261107-000000-ffffff.gcode'
                 if scenario == 'overlay':
                     shot['tokens'].append({'text': '打开系统设置'})
+                needs_refresh = scenario in ['incomplete_device', 'incomplete_device_timelapse', 'refresh_still_incomplete']
+                if needs_refresh or scenario == 'wrong_device':
+                    next(t for t in shot['tokens'] if t['text'].startswith('Bambu Lab'))['text'] = 'Bambu Lab X2D 0.4mm'
+                if scenario == 'wrong_device':
+                    next(t for t in shot['tokens'] if t['text'] == 'PrintLab Test Printer')['text'] = 'Different Printer'
+                if scenario == 'wrong_model':
+                    next(t for t in shot['tokens'] if t['text'].startswith('Bambu Lab'))['text'] = 'Bambu Lab P1S 0.4mm'
                 def helper(mode, *args):
                     if mode == 'probe':
                         return {'instances': [{'pid': 123, 'windows': [{'title': job['id'] + '.gcode'}]}]}
@@ -91,17 +122,27 @@ class StudioBridgeTests(unittest.TestCase):
                     if mode == 'prepare-options':
                         self.assertEqual(args, (123, job['id'] + '.gcode'))
                         return self.shot
+                    if mode == 'refresh-printer':
+                        self.assertEqual(args, (123, job['id'] + '.gcode', 'PrintLab Test Printer'))
+                        if scenario == 'refresh_still_incomplete':
+                            return shot
+                        refreshed = copy.deepcopy(shot)
+                        next(t for t in refreshed['tokens'] if t['text'].startswith('Bambu Lab'))['text'] = 'Bambu Lab X2D 0.4/0.4mm'
+                        return refreshed
                     self.assertEqual(mode, 'open-panel')
                     return {'ok': True, 'sent': False}
                 with patch.object(bridge.core, 'job_path', return_value=directory), patch.object(bridge.core, 'digest', return_value='expected'), patch.object(bridge, 'capability', return_value={'available': True, 'observation': {'instances': []}}), patch.object(bridge.subprocess, 'run') as launch, patch.object(bridge.time, 'sleep'), patch.object(bridge, '_run', side_effect=helper) as run:
-                    if scenario in ['wrong_job', 'overlay']:
-                        expected_error = '任务名' if scenario == 'wrong_job' else '系统弹窗'
+                    if scenario in ['wrong_job', 'overlay', 'refresh_still_incomplete', 'wrong_device', 'wrong_model']:
+                        expected_error = {'wrong_job':'任务名', 'overlay':'系统弹窗',
+                                          'refresh_still_incomplete':'双喷嘴',
+                                          'wrong_device':'打印机', 'wrong_model':'打印机'}[scenario]
                         with self.assertRaisesRegex(core.WorkflowError, expected_error):
                             bridge._open_prepared('P000', job['id'])
                     else:
                         self.assertTrue(bridge._open_prepared('P000', job['id'])[2]['options_verified'])
                     modes = [call.args[0] for call in run.call_args_list]
-                    self.assertEqual(modes.count('prepare-options'), int(scenario == 'timelapse_on'))
+                    self.assertEqual(modes.count('prepare-options'), int(scenario in ['timelapse_on', 'incomplete_device_timelapse']))
+                    self.assertEqual(modes.count('refresh-printer'), int(needs_refresh))
                     self.assertNotIn('send-once', modes)
                     self.assertIn('--args', launch.call_args.args[0])
 
@@ -131,7 +172,7 @@ class StudioBridgeTests(unittest.TestCase):
                 self.assertEqual(data['args'],['probe'])
                 self.assertEqual(request.stat().st_mode & 0o777,0o600)
                 self.assertEqual(request.parent.stat().st_mode & 0o777,0o700)
-                self.assertIn('-W',command)
+                self.assertNotIn('-W',command)
                 response.write_text(json.dumps({'ok':True,'request_id':data['request_id']}))
                 return subprocess.CompletedProcess(command, 0, '', '')
             with patch.object(bridge.core,'ROOT',Path(root)),patch.object(bridge,'_verify_bundle'),patch.object(bridge.subprocess,'run',side_effect=reply):
@@ -142,8 +183,31 @@ class StudioBridgeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             def reply(command,**kwargs):
                 Path(command[-1]).write_text(json.dumps({'ok':True,'request_id':'wrong'}))
+                return subprocess.CompletedProcess(command, 0, '', '')
             with patch.object(bridge.core,'ROOT',Path(root)),patch.object(bridge,'_verify_bundle'),patch.object(bridge.subprocess,'run',side_effect=reply):
                 with self.assertRaisesRegex(core.WorkflowError,'不属于本次请求'):bridge._run('probe')
+
+    def test_launchservices_waits_for_delayed_atomic_receipt(self):
+        with tempfile.TemporaryDirectory() as root:
+            pending = {}
+            def launch(command, **kwargs):
+                pending['request'] = json.loads(Path(command[-2]).read_text())
+                pending['response'] = Path(command[-1])
+                return subprocess.CompletedProcess(command, 0, '', '')
+            def finish(_delay):
+                pending['response'].write_text(json.dumps({
+                    'ok': True, 'request_id': pending['request']['request_id']}))
+            with patch.object(bridge.core, 'ROOT', Path(root)), patch.object(bridge, '_verify_bundle'), patch.object(bridge.subprocess, 'run', side_effect=launch) as run, patch.object(bridge.time, 'sleep', side_effect=finish):
+                self.assertTrue(bridge._run('probe')['ok'])
+                run.assert_called_once()
+
+    def test_missing_send_receipt_times_out_without_relaunch(self):
+        with tempfile.TemporaryDirectory() as root:
+            launched = subprocess.CompletedProcess([], 0, '', '')
+            with patch.object(bridge.core, 'ROOT', Path(root)), patch.object(bridge, '_verify_bundle'), patch.object(bridge.subprocess, 'run', return_value=launched) as run, patch.object(bridge.time, 'monotonic', side_effect=[0, 21]):
+                with self.assertRaisesRegex(core.WorkflowError, '没有返回有效回执'):
+                    bridge._run('send-once', 'bound-request.json')
+                run.assert_called_once()
 
     def test_nonzero_exit_preserves_bound_helper_error(self):
         with tempfile.TemporaryDirectory() as root:

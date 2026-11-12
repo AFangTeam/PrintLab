@@ -32,7 +32,7 @@ PrintLab 工作台可在未连接设备时启动。接入 Bambuddy 后提供状�
 ./Harness/bin/printlab studio-bridge capability
 ```
 
-使用者选择启用系统权限后，再运行 `./Harness/bin/printlab studio-bridge permissions`，按 macOS 提示授予专用助手权限。随后重跑 `capability` 检查实际状态。`Runtime/config.json` 的 `studio_printer_name` 必须与 Studio 设备名一致。
+使用者选择启用系统权限后，再运行 `./Harness/bin/printlab studio-bridge permissions`，按 macOS 提示授予专用助手权限。随后重跑 `capability` 检查实际状态。`Runtime/config.json` 的 `studio_printer_name` 必须与 Studio 设备名一致。Agent 应读取窗口中的准确名称，并核对 Studio 所选设备与目标设备的序列号。Bambuddy 中的别名可能不同，不能直接代填。缺少名称时，`capability` 会报告配置缺项。
 
 任务超出支持范围时，按具体提示核对并使用官方 Studio 界面工作流。首次配置完成后，使用者仍需对实际设备、材料与打印结果进行验证。
 
@@ -51,3 +51,7 @@ PrintLab 工作台可在未连接设备时启动。接入 Bambuddy 后提供状�
 设备报告 IDLE、存储卡可用仅证明当前前提。签名或固件拒绝须依据实际返回诊断，首次现场验收记录固件、网络模式、任务、材料和精确设备读回。
 
 机型证据见 [支持范围](MACHINE_SUPPORT.md)，异常处理见 [排障与经验接续](TROUBLESHOOTING.md)。
+
+如果冷启动后的设备卡暂时只显示 `X2D 0.4mm`，助手会在任务名和设备名一致时刷新一次设备卡，然后重新核对完整的双喷嘴信息、料位和打印选项。刷新后仍不匹配会返回错误。错误设备、错误任务和遮挡窗口的系统提示均需先处理。
+
+助手通过本次请求独有的回执确认执行结果。缺少回执、启动异常或发送结果未知时，先核对设备和工作台记录。未知的发送结果保留在记录中，禁止自动再次发送。

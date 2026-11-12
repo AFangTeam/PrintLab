@@ -40,6 +40,10 @@ class BeforeSendError(core.WorkflowError):
     command_sent = False
 
 
+class IncompleteDeviceInfoError(core.WorkflowError):
+    """The exact selected X2D still shows Studio's single-nozzle placeholder."""
+
+
 HELPER_BUNDLE_ID = 'com.afang.printlab.studio-bridge'
 HELPER_APP_NAME = 'PrintLab发送助手'
 
@@ -113,8 +117,13 @@ def _run(*args, timeout=20):
         payload=json.dumps({'request_id':request_id,'created_at':time.time(),'args':list(map(str,args))})
         fd=os.open(request,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
         with os.fdopen(fd,'w') as stream:stream.write(payload)
-        process = subprocess.run(['/usr/bin/open','-n','-W','-a',str(_bundle_path()),'--args','--ipc',str(request),str(response)],
+        deadline = time.monotonic() + timeout
+        # LaunchServices -W can fail to attach to a short-lived helper. The
+        # helper atomically writes its request-bound receipt after the action.
+        process = subprocess.run(['/usr/bin/open','-n','-a',str(_bundle_path()),'--args','--ipc',str(request),str(response)],
                                  check=False,capture_output=True,text=True,timeout=timeout)
+        while process.returncode == 0 and not response.exists() and time.monotonic() < deadline:
+            time.sleep(.05)
         try:data=json.loads(response.read_text(encoding="utf-8"))
         except (OSError,ValueError,TypeError):
             detail = (process.stderr or '').strip()[:600]
@@ -122,7 +131,7 @@ def _run(*args, timeout=20):
         if not isinstance(data, dict):raise core.WorkflowError('发送助手回执格式无效')
         if data.get('request_id') != request_id:raise core.WorkflowError('发送助手回执不属于本次请求')
         if data.get('ok') is not True:raise core.WorkflowError(data.get('error','发送助手执行失败'))
-        if process.returncode:raise core.WorkflowError(f'发送助手异常退出（退出码 {process.returncode}），执行结果仍需核实')
+        if process.returncode:raise core.WorkflowError(f'发送助手启动命令异常退出（退出码 {process.returncode}），执行结果仍需核实')
         return data
 
 
@@ -165,6 +174,10 @@ def capability(pid=None, jid=None):
                 'blockers': [message], 'transport': 'bambu_studio_manual'}
     blockers = []
     try:
+        display_name()
+    except core.WorkflowError as exc:
+        blockers.append(str(exc))
+    try:
         observed = _run('probe', timeout=10)
         if observed.get('helper_bundle_id') != HELPER_BUNDLE_ID: blockers.append('发送助手未通过专用 App 身份运行')
         if observed.get('studio_version') != STUDIO_VERSION: blockers.append('Studio 版本变更，需重新验证界面适配器')
@@ -193,8 +206,7 @@ def _green(token):
     return token.get('green_pixels', 0) >= 60 and .15 < token.get('green_center_x', -1) < .85
 
 
-def validate_snapshot(shot, job):
-    """Pure validation, also exercised with observations from the real unsent dialog."""
+def _validate_snapshot_identity(shot, job):
     if shot.get('title') != '发送打印任务' or shot.get('active') is not True: raise core.WorkflowError('Studio 发送窗口不是当前活动窗口')
     bounds = shot.get('bounds', {})
     ratio_x = shot.get('width', 0) / max(bounds.get('Width', 0), 1)
@@ -207,10 +219,23 @@ def validate_snapshot(shot, job):
     expected = job['id'] + '.gcode'
     jobs = [s.rstrip(' /') for s in texts if re.match(r'^J\d{8}-\d{6}-[a-z0-9]+\.gcode', s)]
     if jobs != [expected]: raise core.WorkflowError('发送窗口任务名不唯一或不匹配')
-    if texts.count(display_name()) != 1 or texts.count('Bambu Lab X2D 0.4/0.4mm') != 1: raise core.WorkflowError('发送窗口打印机或喷嘴配置不匹配')
+    if texts.count(display_name()) != 1:
+        raise core.WorkflowError('发送窗口打印机或喷嘴配置不匹配')
+    models = [t.casefold() for t in texts if t.casefold().startswith('bambu lab ')]
+    if models == ['bambu lab x2d 0.4mm']:
+        raise IncompleteDeviceInfoError('Studio 尚未显示完整双喷嘴信息，需要刷新设备卡')
+    if models != ['bambu lab x2d 0.4/0.4mm']:
+        raise core.WorkflowError('发送窗口打印机或喷嘴配置不匹配')
+
+
+def validate_snapshot(shot, job):
+    """Pure validation, also exercised with observations from the real unsent dialog."""
+    _validate_snapshot_identity(shot, job)
+    tokens = shot.get('tokens', [])
+    texts = [t.get('text', '') for t in tokens]
     m = job['mapping']; slot = m['ams_mapping'][0]
     wanted_slot = chr(ord('A')+slot//4) + str(slot%4+1)
-    shown_slots = [(re.sub(r'[Vv∨▼⌄]+$', '',t['text']),t) for t in tokens if re.fullmatch(r'[A-D][1-4][Vv∨▼⌄]*', t['text'])]
+    shown_slots = [(re.sub(r'[VvY∨▼⌄]+$', '',t['text']),t) for t in tokens if re.fullmatch(r'[A-D][1-4][VvY∨▼⌄]*', t['text'])]
     if len(shown_slots) != 1 or shown_slots[0][0] != wanted_slot or shown_slots[0][1]['x'] >= .5: raise core.WorkflowError('AMS 槽位或主辅喷嘴不匹配')
     materials = [t for t in tokens if t['text'] in {'PLA','PETG','ABS','ASA','TPU','PA','PC','Sup.PLA','Support'}]
     if len(materials) != 1 or materials[0]['text'] != m['filament_types'][0] or materials[0]['x'] >= .5: raise core.WorkflowError('窗口材料或喷嘴分组不匹配')
@@ -250,6 +275,10 @@ def _open_prepared(pid,jid):
     _run('open-panel',target,jid+'.gcode')
     time.sleep(1)
     shot = _run('inspect-panel',target,'发送打印任务')
+    try:
+        _validate_snapshot_identity(shot, job)
+    except IncompleteDeviceInfoError:
+        shot = _run('refresh-printer', target, jid+'.gcode', display_name())
     try:
         proof = validate_snapshot(shot,job)
     except core.WorkflowError as exc:
