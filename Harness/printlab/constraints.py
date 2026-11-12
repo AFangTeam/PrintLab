@@ -70,6 +70,8 @@ def current(pid, inventory=None):
                if device[key]['value'] is None]
     if inventory.get('state') != 'online':
         missing.append('owned_materials')
+    if card.get('verification_status') == 'identity_conflict':
+        missing.append('device_identity_conflict')
     profile_changed = any(not Path(row['path']).is_file() or core.digest(Path(row['path'])) != row['sha256']
                           for row in official.get('source_files', []))
     if profile_changed:
@@ -135,7 +137,7 @@ def build_envelope(pid):
     facts = current(pid, {'state': 'unavailable', 'items': []})
     area = facts['device']['printable_area']['value']
     height = facts['device']['printable_height']['value']
-    if area is None or height is None or facts['official_profile_changed']:
+    if area is None or height is None or facts['official_profile_changed'] or facts['device_verification'] == 'identity_conflict':
         return {'known': False, 'reason': '当前设备打印空间缺少有效来源，需在切片前核对'}
     try:
         points = [[float(n) for n in point.strip().split('x')] for point in area]

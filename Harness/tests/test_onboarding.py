@@ -155,6 +155,20 @@ def test_failed_host_creation_can_resume_after_absence_evidence(root):
         onboarding.release_role('Mike', 'retry-request', 'Cannot release created chat', 5)
 
 
+def test_switching_machine_archives_old_capabilities_and_requires_readback(root):
+    path = root / workspace.DOCUMENTS['device']
+    previous = {'model': 'X2D', 'installed': {'printable_height': 261},
+                'user_confirmed': {'model': 'X2D', 'ams_count': 2},
+                'verification_status': 'connected_readonly', 'connection': {'printer_id': 1}}
+    core.write_json(path, previous)
+    workspace.update_device({'model': 'A1 mini'}, 'User selects another machine', core.digest(path))
+    card = core.read_json(path)
+    assert card['model'] == card['user_confirmed']['model'] == 'A1 mini'
+    assert card['verification_status'] == 'unconfigured'
+    assert 'installed' not in card and 'ams_count' not in card['user_confirmed']
+    assert core.read_json(root / card['previous_device_record']) == previous
+
+
 def test_document_updates_conflict_idempotency_and_legacy_text(root):
     first = workspace.append_note('lessons', '待验证的冷却假设', '项目复盘', 'abc', None)
     replay = workspace.append_note('lessons', '待验证的冷却假设', '项目复盘', 'abc', None)
@@ -177,7 +191,7 @@ def test_device_facts_preserve_unrelated_fields_and_reject_secrets(root):
                                      '用户确认', core.digest(path))
     card = json.loads(result['text'])
     assert card['installed']['legacy'] == 'preserved'
-    assert card['user_confirmed'] == {'fts_installed': False, 'ams_count': 1}
+    assert card['user_confirmed'] == {'fts_installed': False, 'ams_count': 1, 'model': 'Other machine'}
     with pytest.raises(core.WorkflowError, match='credentials'):
         workspace.update_device({'user_confirmed': {'access_code': 'secret'}}, 'source', result['sha256'])
 

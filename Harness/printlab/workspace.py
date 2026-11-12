@@ -115,10 +115,25 @@ def update_device(changes, source, expected_sha256):
         path = core.safe_path(core.ROOT, DOCUMENTS['device'], require_file=False)
         check_version(path, expected_sha256)
         card = core.read_json(path, {'schema_version': 1, 'verification_status': 'unconfigured'})
+        from .machine_profiles import model_id
+        old_model = card.get('user_confirmed', {}).get('model') or card.get('model')
+        new_model = confirmed.get('model') or changes.get('model')
+        if changes.get('model') and confirmed.get('model') and model_id(changes['model']) != model_id(confirmed['model']):
+            raise core.WorkflowError('Device model fields must describe the same machine')
+        if old_model and new_model and model_id(old_model) != model_id(new_model):
+            archive = core.ROOT / 'Library/Devices/History' / f'{core.digest(path)}.json'
+            core.write_json(archive, card)
+            for key in ('installed', 'official_profile', 'observed', 'connection', 'user_confirmed'):
+                card.pop(key, None)
+            card['verification_status'] = 'unconfigured'
+            card['previous_device_record'] = archive.relative_to(core.ROOT).as_posix()
         for key in ('model', 'name'):
             if key in changes:
                 card[key] = changes[key]
         card['user_confirmed'] = {**card.get('user_confirmed', {}), **confirmed}
+        if new_model:
+            card['model'] = new_model
+            card['user_confirmed']['model'] = new_model
         card.setdefault('fact_updates', []).append({'at': core.now(), 'source': source, 'changes': changes})
         core.write_json(path, card)
         return document('device')
