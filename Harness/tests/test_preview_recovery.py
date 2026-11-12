@@ -264,3 +264,39 @@ def test_ambiguous_webkit_and_untrusted_url_are_skipped(workspace):
     (folder / 'untrusted').write_bytes(URL.replace('public-cdn.bblmw.com', 'example.com').encode() + b'\x00' + png())
     report = recovery.recover(cache_dir=cache, client_factory=client([archive()]))
     assert report['counts'] == {'not_found': 1} and report['issues']['ambiguous_records'] == 1
+
+
+def test_missing_cache_body_fetch_is_explicit_bounded_and_private(workspace, monkeypatch):
+    import contextlib
+    import httpx
+
+    cache = workspace / 'cache'
+    cache_database(cache, [(URL, 1, b'evicted.png')])
+    calls = []
+    def stream(method, url, **kwargs):
+        calls.append(url)
+        assert method == 'GET' and kwargs['follow_redirects'] is False
+        return contextlib.nullcontext(httpx.Response(200, content=png(), request=httpx.Request('GET', url)))
+    monkeypatch.setattr(recovery.httpx, 'stream', stream)
+    assert recovery.recover(cache_dir=cache, client_factory=client([archive()]))['counts'] == {'not_found': 1}
+    assert calls == []
+    report = recovery.recover(cache_dir=cache, fetch_missing=True, apply=True, client_factory=client([archive()]))
+    assert calls == [URL] and report['counts'] == {'recovered': 1}
+    assert report['issues']['downloaded_images'] == 1
+    assert 'PRIVATE' not in (workspace / recovery.INDEX).read_text() + json.dumps(report)
+
+
+def test_fetch_rejects_redirect_oversize_and_untrusted_host(monkeypatch):
+    import contextlib
+    import httpx
+
+    issues = {'downloaded_images': 0, 'failed_downloads': 0}
+    responses = [httpx.Response(302, headers={'location': 'https://example.com'}, request=httpx.Request('GET', URL)),
+                 httpx.Response(200, content=b'x' * 9, request=httpx.Request('GET', URL))]
+    monkeypatch.setattr(recovery, 'MAX_IMAGE', 8)
+    monkeypatch.setattr(recovery.httpx, 'stream', lambda *a, **kw: contextlib.nullcontext(responses.pop(0)))
+    assert recovery.fetch_image(URL.replace('public-cdn.bblmw.com', 'example.com'), issues) is None
+    assert len(responses) == 2
+    assert recovery.fetch_image(URL, issues) is None
+    assert recovery.fetch_image(URL, issues) is None
+    assert issues == {'downloaded_images': 0, 'failed_downloads': 2}

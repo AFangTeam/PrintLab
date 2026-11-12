@@ -32,6 +32,7 @@ def parser():
     source.add_argument('--cache-dir', help='macOS CFURL/WebKit cache root or a copy of that cache')
     source.add_argument('--manifest', help='JSON binding local PNG/3MF files to archive, device, profile and plate')
     recovery.add_argument('--apply', action='store_true', help='Persist new previews while preserving existing entries')
+    recovery.add_argument('--fetch-missing', action='store_true', help='Fetch missing image bodies from known official cache URLs')
     taste = sub.add_parser("taste", help="Archive full image-choice rounds; never prints or confirms inferred preferences")
     taste_commands = taste.add_subparsers(dest="taste_command", required=True)
     taste_record = taste_commands.add_parser("record")
@@ -311,7 +312,7 @@ def main(argv=None):
         elif a.command == 'history-recover':
             from . import preview_recovery
             result = preview_recovery.recover(printer_id=a.printer_id, cache_dir=a.cache_dir,
-                                              manifest=a.manifest, apply=a.apply)
+                                              manifest=a.manifest, apply=a.apply, fetch_missing=a.fetch_missing)
         elif a.command == 'history':
             from . import history
             result = history.view(force=a.refresh)

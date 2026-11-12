@@ -10,7 +10,7 @@
 | Windows / macOS | 本地 PNG 或 3MF 与绑定清单 | `--manifest` 读取明确绑定的设备、档案、配置和板号，从 3MF 提取指定板 PNG |
 | 任意系统 | 从 Mac 复制的 CFURL / WebKit 缓存 | `--cache-dir` 读取上述已知格式；Windows 原生 Studio 缓存解析尚未实现 |
 
-缓存可能已被清理、只有 URL 或缺少图片本体，工具会报告 `not_found`。只读取现存图片字节，联网请求限于配置的 Bambuddy 档案 GET 接口。账号旧打印历史与 MakerWorld 账号收藏导入已排除在本轮开发范围外。
+缓存可能已被清理、只有 URL 或缺少图片本体，默认会报告 `not_found`。默认读取现存图片字节，联网请求限于配置的 Bambuddy 档案 GET 接口。缓存仍有官方图片 URL 时，可加 `--fetch-missing` 尝试补回图片本体，沿用旧脚本的下载能力。下载限定已识别的官方 HTTPS 图片域名、禁止跳转并限制图片大小，过期 URL 计入 `failed_downloads`。账号旧打印历史与 MakerWorld 账号收藏导入已排除在本轮开发范围外。
 
 ## Mac 操作
 
@@ -21,6 +21,13 @@
 ./Harness/bin/printlab history-recover
 ./Harness/bin/printlab history-recover --apply
 ./Harness/bin/printlab history --refresh
+```
+
+缓存只有图片链接时，可预演并应用下载结果。
+
+```bash
+./Harness/bin/printlab history-recover --fetch-missing
+./Harness/bin/printlab history-recover --fetch-missing --apply
 ```
 
 工具默认使用 `Runtime/config.json` 的 `printer_id`。多设备或缓存副本可显式指定。
@@ -79,7 +86,7 @@ PNG 同样通过 `file` 提供。只使用有明确配置和板号来源的模�
 | `not_found` | 没有可读取且匹配的图片 |
 | `conflict` | 同一匹配出现不同图片内容，或目标文件内容冲突，保留空位供核对 |
 
-`issues` 提供缺少缓存数据库、缺少 WebKit 记录、损坏图片、无法读取来源、模糊缓存记录和清单不匹配计数。先处理这些原因，再运行预演。报告省略签名 URL、原始缓存、账号令牌和本机来源路径。
+`issues` 提供缺少缓存数据库、缺少 WebKit 记录、损坏图片、无法读取来源、模糊缓存记录和清单不匹配计数，同时记录显式下载的成功与失败数量。先处理这些原因，再运行预演。报告省略签名 URL、原始缓存、账号令牌和本机来源路径。
 
 已有 `recovered-previews.json` 的旧数字键继续读取。新条目使用 `printer_id:archive_id`，同一档案编号在不同设备间独立保存。写入使用跨进程锁、原子图片替换和原子 JSON 提交，重试可复用内容哈希图片。中途失败最多留下尚未被引用的图片，下一次恢复可继续。
 

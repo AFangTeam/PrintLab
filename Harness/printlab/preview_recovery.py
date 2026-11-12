@@ -18,6 +18,7 @@ import tempfile
 from urllib.parse import urlsplit
 import zipfile
 
+import httpx
 from PIL import Image
 
 from . import bambuddy, core, history
@@ -48,7 +49,8 @@ def identity(archive):
 def url_identity(url):
     try:
         parsed = urlsplit(url)
-        if parsed.scheme != 'https' or parsed.hostname not in HOSTS or parsed.username or parsed.password:
+        if (parsed.scheme != 'https' or parsed.hostname not in HOSTS or parsed.port not in (None, 443)
+                or parsed.username or parsed.password):
             return None
         match = re.search(r'/([1-9][0-9]*)/3mf/(?:[^/]+/)*Metadata/plate_([1-9][0-9]*)\.png$', parsed.path)
         return match.groups() if match else None
@@ -83,7 +85,27 @@ def add_candidate(candidates, key, data, source, issues):
     candidates.setdefault(key, {})[digest] = (data, source)
 
 
-def studio_candidates(root, wanted, issues):
+def fetch_image(url, issues):
+    """Fetch only a known official cache URL, with bounded bytes and no redirects."""
+    if url_identity(url) is None:
+        return None
+    try:
+        with httpx.stream('GET', url, timeout=15, follow_redirects=False, trust_env=False) as response:
+            response.raise_for_status()
+            data = bytearray()
+            for chunk in response.iter_bytes(chunk_size=65536):
+                data.extend(chunk)
+                if len(data) > MAX_IMAGE:
+                    raise ValueError('Image exceeds size limit')
+        png_digest(data)
+        issues['downloaded_images'] += 1
+        return bytes(data)
+    except (httpx.HTTPError, OSError, ValueError, Image.DecompressionBombError):
+        issues['failed_downloads'] += 1
+        return None
+
+
+def studio_candidates(root, wanted, issues, fetch_missing=False):
     candidates = {}
     database = root / 'Cache.db'
     if database.is_file():
@@ -99,11 +121,18 @@ def studio_candidates(root, wanted, issues):
                     try:
                         if on_disk:
                             filename = blob if isinstance(blob, str) else bytes(blob).decode('utf-8')
-                            path = core.safe_path(root / 'fsCachedData', filename)
-                            data = read_bounded(path)
+                            path = core.safe_path(root / 'fsCachedData', filename, require_file=False)
+                            data = read_bounded(path) if path.is_file() else None
                         else:
                             data = bytes(blob)
-                        add_candidate(candidates, key, data, 'official_studio_cfurl_cache', issues)
+                        source = 'official_studio_cfurl_cache'
+                        if data is None and fetch_missing:
+                            data = fetch_image(url, issues)
+                            source = 'official_studio_cache_url'
+                        if data is None:
+                            issues['unreadable_sources'] += 1
+                        else:
+                            add_candidate(candidates, key, data, source, issues)
                     except (OSError, ValueError, TypeError, core.WorkflowError):
                         issues['unreadable_sources'] += 1
         except sqlite3.Error:
@@ -131,15 +160,23 @@ def studio_candidates(root, wanted, issues):
                     continue
                 start = record.find(PNG)
                 end = record.find(b'IEND', start)
+                source = 'official_studio_webkit_cache'
                 if start >= 0 and end > start:
                     if record.find(PNG, start + len(PNG)) >= 0:
                         issues['ambiguous_records'] += 1
                         continue
                     data = record[start:end + 8]
                 else:
-                    blob = core.safe_path(root, path.relative_to(root).as_posix() + '-blob')
-                    data = read_bounded(blob)
-                add_candidate(candidates, key, data, 'official_studio_webkit_cache', issues)
+                    blob = core.safe_path(root, path.relative_to(root).as_posix() + '-blob', require_file=False)
+                    data = read_bounded(blob) if blob.is_file() else None
+                if data is None and fetch_missing:
+                    url = next(url.decode('ascii') for url in urls if url_identity(url.decode('ascii')) == key)
+                    data = fetch_image(url, issues)
+                    source = 'official_studio_cache_url'
+                if data is None:
+                    issues['unreadable_sources'] += 1
+                else:
+                    add_candidate(candidates, key, data, source, issues)
             except (OSError, ValueError, core.WorkflowError):
                 issues['unreadable_sources'] += 1
     return candidates
@@ -231,12 +268,14 @@ def atomic_image(path, data):
             os.unlink(temporary)
 
 
-def recover(*, printer_id=None, cache_dir=None, manifest=None, apply=False, client_factory=None):
+def recover(*, printer_id=None, cache_dir=None, manifest=None, apply=False, fetch_missing=False, client_factory=None):
     pid = printer_id if printer_id is not None else core.config().get('printer_id')
     if type(pid) is not int or pid <= 0:
         raise core.WorkflowError('Configure printer_id or pass --printer-id with a positive integer')
     if manifest and cache_dir:
         raise core.WorkflowError('Choose --manifest or --cache-dir')
+    if manifest and fetch_missing:
+        raise core.WorkflowError('--fetch-missing applies only to Studio cache URLs')
     if not manifest and cache_dir is None and sys.platform != 'darwin':
         raise core.WorkflowError('Use --manifest for local PNG/3MF on this platform; native Studio cache format is unsupported')
     client = (client_factory or bambuddy.Client)()
@@ -247,13 +286,14 @@ def recover(*, printer_id=None, cache_dir=None, manifest=None, apply=False, clie
     # Reject a service returning rows outside the requested device, rather than matching their images.
     if any(a.get('printer_id') != pid or type(a.get('id')) is not int for a in archives):
         raise core.WorkflowError('Archive response contains an invalid ID or a different device')
-    issues = dict(invalid_images=0, unreadable_sources=0, ambiguous_records=0, unmatched_manifest_entries=0)
+    issues = dict(invalid_images=0, unreadable_sources=0, ambiguous_records=0, unmatched_manifest_entries=0,
+                  downloaded_images=0, failed_downloads=0)
     if manifest:
         candidates = manifest_candidates(Path(manifest).expanduser(), archives, issues)
     else:
         root = Path(cache_dir).expanduser() if cache_dir else Path.home() / 'Library/Caches/com.bambulab.bambu-studio'
         wanted = {key for archive in archives if (key := identity(archive))}
-        candidates = studio_candidates(root, wanted, issues)
+        candidates = studio_candidates(root, wanted, issues, fetch_missing)
     report = {'mode': 'apply' if apply else 'dry_run', 'printer_id': pid, 'source': 'manifest' if manifest else 'studio_cache',
               'issues': issues, 'items': [], 'written': 0, 'cloud_history_synced': False}
     # The index is read again under the inter-process lock, so concurrent invocations merge safely.
