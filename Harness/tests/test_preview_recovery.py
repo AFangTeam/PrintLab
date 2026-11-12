@@ -153,10 +153,14 @@ def test_missing_cache_malformed_image_and_path_traversal(workspace):
     cache = workspace / 'missing'
     assert recovery.recover(cache_dir=cache, client_factory=client([archive()]))['counts'] == {'not_found': 1}
     (workspace / 'outside.png').write_bytes(png())
-    cache_database(cache, [(URL, 1, b'../../outside.png'), (URL, 0, b'broken')])
+    bad_crc = bytearray(png())
+    position = bad_crc.index(b'IDAT')
+    length = int.from_bytes(bad_crc[position - 4:position], 'big')
+    bad_crc[position + 4 + length] ^= 1
+    cache_database(cache, [(URL, 1, b'../../outside.png'), (URL, 0, b'broken'), (URL, 0, bytes(bad_crc))])
     report = recovery.recover(cache_dir=cache, client_factory=client([archive()]))
     assert report['counts'] == {'not_found': 1}
-    assert report['issues']['unreadable_sources'] == 1 and report['issues']['invalid_images'] == 1
+    assert report['issues']['unreadable_sources'] == 1 and report['issues']['invalid_images'] == 2
 
 
 def test_malformed_index_is_never_replaced(workspace):

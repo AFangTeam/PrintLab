@@ -79,7 +79,7 @@ def read_bounded(path, limit=MAX_IMAGE):
 def add_candidate(candidates, key, data, source, issues):
     try:
         digest = png_digest(data)
-    except (OSError, ValueError, Image.DecompressionBombError):
+    except (OSError, ValueError, SyntaxError, Image.DecompressionBombError):
         issues['invalid_images'] += 1
         return
     candidates.setdefault(key, {})[digest] = (data, source)
@@ -100,7 +100,7 @@ def fetch_image(url, issues):
         png_digest(data)
         issues['downloaded_images'] += 1
         return bytes(data)
-    except (httpx.HTTPError, OSError, ValueError, Image.DecompressionBombError):
+    except (httpx.HTTPError, OSError, ValueError, SyntaxError, Image.DecompressionBombError):
         issues['failed_downloads'] += 1
         return None
 
@@ -249,7 +249,7 @@ def saved_preview(index, archive):
         path = core.safe_path(core.ROOT, url.removeprefix('/api/documents/'))
         if saved.get('sha256') and png_digest(read_bounded(path)) != saved['sha256']:
             return None
-    except (OSError, ValueError, core.WorkflowError, Image.DecompressionBombError):
+    except (OSError, ValueError, SyntaxError, core.WorkflowError, Image.DecompressionBombError):
         return None
     return {key: saved.get(key) for key in ('url', 'kind', 'profile_id', 'plate')}
 
