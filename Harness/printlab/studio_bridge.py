@@ -113,12 +113,16 @@ def _run(*args, timeout=20):
         payload=json.dumps({'request_id':request_id,'created_at':time.time(),'args':list(map(str,args))})
         fd=os.open(request,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
         with os.fdopen(fd,'w') as stream:stream.write(payload)
-        subprocess.run(['/usr/bin/open','-n','-W','-a',str(_bundle_path()),'--args','--ipc',str(request),str(response)],
-                       check=True,capture_output=True,text=True,timeout=timeout)
+        process = subprocess.run(['/usr/bin/open','-n','-W','-a',str(_bundle_path()),'--args','--ipc',str(request),str(response)],
+                                 check=False,capture_output=True,text=True,timeout=timeout)
         try:data=json.loads(response.read_text(encoding="utf-8"))
-        except (OSError,ValueError,TypeError):raise core.WorkflowError('发送助手没有返回有效的独立进程回执') from None
+        except (OSError,ValueError,TypeError):
+            detail = (process.stderr or '').strip()[:600]
+            raise core.WorkflowError(f'发送助手没有返回有效回执（退出码 {process.returncode}）{": " + detail if detail else ""}') from None
+        if not isinstance(data, dict):raise core.WorkflowError('发送助手回执格式无效')
         if data.get('request_id') != request_id:raise core.WorkflowError('发送助手回执不属于本次请求')
         if data.get('ok') is not True:raise core.WorkflowError(data.get('error','发送助手执行失败'))
+        if process.returncode:raise core.WorkflowError(f'发送助手异常退出（退出码 {process.returncode}），执行结果仍需核实')
         return data
 
 
@@ -198,6 +202,8 @@ def validate_snapshot(shot, job):
     if not 0.9 <= ratio_x <= 3 or abs(ratio_x-ratio_y) > .02: raise core.WorkflowError('窗口截图与当前实际尺寸不一致')
     tokens = shot.get('tokens', [])
     texts = [t.get('text','') for t in tokens]
+    if {'允许', '不允许', '打开系统设置'} & set(texts):
+        raise core.WorkflowError('系统弹窗遮挡发送窗口，请先处理系统提示再继续')
     expected = job['id'] + '.gcode'
     jobs = [s.rstrip(' /') for s in texts if re.match(r'^J\d{8}-\d{6}-[a-z0-9]+\.gcode', s)]
     if jobs != [expected]: raise core.WorkflowError('发送窗口任务名不唯一或不匹配')
@@ -230,7 +236,7 @@ def _open_prepared(pid,jid):
     before = {i['pid'] for i in cap['observation'].get('instances',[])}
     artifact = core.safe_path(jd,job['artifact'])
     if core.digest(artifact) != job['artifact_sha256']: raise core.WorkflowError('Artifact changed')
-    subprocess.run(['/usr/bin/open','-n','-a',BUNDLE,str(artifact)], check=True, timeout=10)
+    subprocess.run(['/usr/bin/open','-n','-a',BUNDLE,'--args',str(artifact)], check=True, timeout=10)
     target = None
     deadline = time.monotonic()+40
     while time.monotonic()<deadline:
@@ -243,8 +249,16 @@ def _open_prepared(pid,jid):
     if target is None: raise core.WorkflowError('Studio did not load the exact job; no print sent')
     _run('open-panel',target,jid+'.gcode')
     time.sleep(1)
-    shot = _run('prepare-options',target)
-    proof = validate_snapshot(shot,job)
+    shot = _run('inspect-panel',target,'发送打印任务')
+    try:
+        proof = validate_snapshot(shot,job)
+    except core.WorkflowError as exc:
+        # Only the timelapse setting is changed by this adapter. Other failures
+        # must remain visible before any preparation click is attempted.
+        if str(exc) != '延时摄影未处于要求的关闭状态':
+            raise
+        shot = _run('prepare-options',target,jid+'.gcode')
+        proof = validate_snapshot(shot,job)
     return target,shot,proof
 
 

@@ -66,7 +66,19 @@ func snapshot(_ pid:pid_t,_ title:String,raise:Bool=false) throws -> [String:Any
     let ax=AXUIElementCreateApplication(pid)
     let matches=(attr(ax,kAXWindowsAttribute) as? [AXUIElement] ?? []).filter {(attr($0,kAXTitleAttribute) as? String)==title}
     guard matches.count==1 else {try fail("Exact accessible window is absent or ambiguous")}
-    if raise { app.activate(options:[.activateAllWindows]); AXUIElementSetAttributeValue(matches[0],kAXMinimizedAttribute as CFString,kCFBooleanFalse); AXUIElementPerformAction(matches[0],kAXRaiseAction as CFString); Thread.sleep(forTimeInterval:1.0) }
+    if raise {
+        app.activate(options:[.activateAllWindows])
+        AXUIElementSetAttributeValue(matches[0],kAXMinimizedAttribute as CFString,kCFBooleanFalse)
+        AXUIElementPerformAction(matches[0],kAXRaiseAction as CFString)
+        // AppKit refreshes activation state only when the main run loop runs.
+        let deadline = Date(timeIntervalSinceNow:2)
+        repeat {
+            RunLoop.current.run(until:Date(timeIntervalSinceNow:0.05))
+        } while NSWorkspace.shared.frontmostApplication?.processIdentifier != pid && Date() < deadline
+        guard NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else {
+            try fail("Studio activation was not granted; no button clicked")
+        }
+    }
     let infos=CGWindowListCopyWindowInfo([.optionOnScreenOnly,.excludeDesktopElements],kCGNullWindowID) as? [[String:Any]] ?? []
     let candidates=infos.filter {($0[kCGWindowOwnerPID as String] as? Int)==Int(pid) && ($0[kCGWindowName as String] as? String)==title && [0,8].contains($0[kCGWindowLayer as String] as? Int ?? -1)}
     guard candidates.count==1,let info=candidates.first,let wid=info[kCGWindowNumber as String] as? Int,let bounds=info[kCGWindowBounds as String] as? [String:Double] else {try fail("Exact visible window is absent or ambiguous")}
@@ -75,7 +87,22 @@ func snapshot(_ pid:pid_t,_ title:String,raise:Bool=false) throws -> [String:Any
     let task=Process();task.executableURL=URL(fileURLWithPath:"/usr/sbin/screencapture");task.arguments=["-x","-R",["X","Y","Width","Height"].map{String(Int(bounds[$0] ?? 0))}.joined(separator:","),path.path];task.standardError=FileHandle.nullDevice;try task.run();task.waitUntilExit()
     guard task.terminationStatus==0,let data=try? Data(contentsOf:path),let image=NSImage(data:data),let cg=image.cgImage(forProposedRect:nil,context:nil,hints:nil) else {try fail("Window capture failed")}
     let req=VNRecognizeTextRequest();req.recognitionLevel = .accurate;req.recognitionLanguages=["zh-Hans","en-US"];req.usesLanguageCorrection=false
-    try VNImageRequestHandler(cgImage:cg).perform([req])
+    // Normalize low-density desktop captures for Vision; retain original pixels
+    // for selection color, geometry and the final window fingerprint.
+    var recognitionImage = cg
+    if cg.width < 1400 {
+        guard let context = CGContext(data:nil, width:cg.width * 2, height:cg.height * 2,
+                                      bitsPerComponent:8, bytesPerRow:0,
+                                      space:CGColorSpaceCreateDeviceRGB(),
+                                      bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue) else {
+            try fail("Cannot prepare text recognition image")
+        }
+        context.interpolationQuality = .high
+        context.draw(cg, in:CGRect(x:0, y:0, width:cg.width * 2, height:cg.height * 2))
+        guard let scaled = context.makeImage() else { try fail("Cannot scale text recognition image") }
+        recognitionImage = scaled
+    }
+    try VNImageRequestHandler(cgImage:recognitionImage).perform([req])
     let tokens=(req.results ?? []).compactMap { observation -> [String:Any]? in
         guard let best=observation.topCandidates(1).first else{return nil};let b=observation.boundingBox
         var greenCount=0; var greenX=0.0
@@ -94,6 +121,7 @@ func clickToken(_ shot:[String:Any],_ text:String) throws {
     guard let pid=shot["pid"] as? Int,let bounds=shot["bounds"] as? [String:Double],let tokens=shot["tokens"] as? [[String:Any]],let observed=shot["observed_at"] as? Double,Date().timeIntervalSince1970-observed<2 else {try fail("Stale observation")}
     let hits=tokens.filter{($0["text"] as? String)==text && ($0["confidence"] as? Double ?? 0)>=0.5}
     guard hits.count==1,let b=hits.first,let x=b["x"] as? Double,let y=b["y"] as? Double,let w=b["width"] as? Double,let h=b["height"] as? Double else {try fail("Unique exact button text not recognized: " + String(describing: tokens.filter{ ($0["text"] as? String ?? "").contains("打印") }))}
+    RunLoop.current.run(until:Date(timeIntervalSinceNow:0.01))
     guard NSWorkspace.shared.frontmostApplication?.processIdentifier==pid_t(pid) else {try fail("Studio lost foreground")}
     let p=CGPoint(x:(bounds["X"] ?? 0)+(x+w/2)*(bounds["Width"] ?? 0),y:(bounds["Y"] ?? 0)+(y+h/2)*(bounds["Height"] ?? 0))
     guard let down=CGEvent(mouseEventSource:nil,mouseType:.leftMouseDown,mouseCursorPosition:p,mouseButton:.left),let up=CGEvent(mouseEventSource:nil,mouseType:.leftMouseUp,mouseCursorPosition:p,mouseButton:.left) else {try fail("Cannot construct mouse event")}
@@ -117,9 +145,18 @@ do {
         if mode=="open-panel" { guard args[2].hasSuffix(".gcode"),!args[2].contains("*") else {try fail("Only exact sliced job preview may open send panel")};try clickToken(shot,"打印单盘");emit(["ok":true,"opened_panel":true,"sent":false]) }
         else {emit(shot)}
     case "prepare-options":
-        guard args.count==2,let pid=Int32(args[1]) else {try fail("Expected pid")}
+        guard args.count==3,let pid=Int32(args[1]),args[2].hasSuffix(".gcode"),!args[2].contains("*") else {
+            try fail("Expected pid and exact sliced job title")
+        }
         let shot=try snapshot(pid,"发送打印任务",raise:true)
         let tokens=shot["tokens"] as? [[String:Any]] ?? []
+        let texts=tokens.compactMap { $0["text"] as? String }
+        guard Set(texts).isDisjoint(with:["允许","不允许","打开系统设置"]) else {
+            try fail("系统弹窗遮挡发送窗口，请先处理系统提示再继续")
+        }
+        guard texts.filter({$0.trimmingCharacters(in:CharacterSet(charactersIn:" /"))==args[2]}).count==1 else {
+            try fail("Exact job is not visible in the send dialog; no option clicked")
+        }
         let labels=tokens.filter{($0["text"] as? String ?? "").hasPrefix("延时摄影")}
         guard labels.count==1,let y=labels[0]["y"] as? Double else {try fail("Timelapse row not recognized")}
         let close=tokens.filter{($0["text"] as? String)=="关闭" && abs(($0["y"] as? Double ?? 9)-y)<0.025 && ($0["x"] as? Double ?? 9)<0.5}
