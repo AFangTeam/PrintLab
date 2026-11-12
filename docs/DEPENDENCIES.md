@@ -33,4 +33,6 @@ Python 包在 `Harness/pyproject.toml` 声明。网页依赖在 `Harness/studio/
 
 Python 依赖使用 `scripts/requirements.lock` 的版本和 SHA-256；前端与检查器分别使用自己的 package-lock.json。升级时更新锁文件并重跑跨平台验收，不能直接改为 latest。
 
+检查器下载清单将 `bambu-js` 的间接依赖 `basic-ftp` 固定为 6.2.6，清除旧版目录解析漏洞。该版本与检查器已有的直接依赖一致，检查器主版本仍为 1.1.33。此组合验证范围为本地 `inspect_print_file`，包括真实切片包检查。[上游漏洞记录](https://github.com/advisories/GHSA-c475-qrg2-pj4r)
+
 Text-to-CAD 的固定版本、Mac/Windows 安装命令、宿主接入和最小建模验收见 [CAD 安装指南](CAD_SETUP.md)。
