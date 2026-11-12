@@ -1,5 +1,6 @@
 """State and subprocess recovery only; no printer transport in this module."""
 import os
+import subprocess
 from pathlib import Path
 import sys
 import time
@@ -9,6 +10,25 @@ from test_workflow import workspace
 from test_native import native_job, NativeDevice
 
 TASK='checked-01234567-0123-0123-0123-0123456789ab-Jtest'
+
+
+@pytest.mark.skipif(sys.platform == 'win32', reason='POSIX process groups')
+@pytest.mark.parametrize('states,denied', [('123 Z', False), ('', False), ('123 S', True)])
+def test_cleanup_permission_error_requires_no_live_group_members(monkeypatch, states, denied):
+    class Process:
+        pid = 123
+        def communicate(self, timeout):
+            return '', ''
+    def reject(*args):
+        raise PermissionError('simulated exited group')
+    monkeypatch.setattr(os, 'killpg', reject)
+    monkeypatch.setattr(subprocess, 'run', lambda *args, **kwargs:
+                        subprocess.CompletedProcess(args[0], 0, stdout=states))
+    if denied:
+        with pytest.raises(core.WorkflowError, match='cleanup was denied'):
+            native._terminate_group(Process())
+    else:
+        native._terminate_group(Process())
 
 
 def setup_dispatch(workspace):

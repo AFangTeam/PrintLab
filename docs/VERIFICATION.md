@@ -1,5 +1,20 @@
 # 验证记录
 
+## v0.3.0 三平台验收
+
+2026-11-12，候选 `5416518` 的 PR 合并预览 `f997fc0` 在 GitHub 托管 macOS、Windows Server 2022 和 Windows Server 2025 虚拟机全部通过。报告和安装包已下载读回。[云端记录](https://github.com/AFangTeam/PrintLab/actions/runs/43144025772)
+
+- Mac Python 测试 377 通过、9 跳过。两台 Windows 各 363 通过、23 跳过。跳过项对应平台专属检查及需要用户设备、配置和私人模型的集成检查。
+- 从源码 ZIP 在中文空格目录全新安装，检查 CLI、初始化保留配置、真实公开文件检查器、项目创建与跨进程接续。
+- 独立安装 Text-to-CAD 0.11.9，真实生成临时几何，核对体积、有效性以及 STEP/STL 导出。
+- 独立安装 Bambuddy v1.2.5.7，通过六个真实只读接口，撤销测试 key，停止服务并删除临时数据。
+- 独立下载官方 Bambu Studio 02.08.02.61，校验下载哈希，解析官方 X2D 配置，真实切片并完成启动指令审查及公开文件检查。
+- 真实 Chromium 验收工作台和待打印页。Mac 检查、清板确认、提交与刷新后单次发送记录通过。Windows 显示官方 Studio 手动交接路径。设备和 GUI 发送边界采用模拟，页面脚本错误为零。
+
+本轮修复了 Windows 临时 SQLite 文件在服务退出后仍被占用的清理失败。清理会等待最多 15 秒，持续失败仍使验收失败。此前 GitHub 排队状态异常通过服务恢复后手动重新触发解除。
+
+云端 Windows 使用 Server 虚拟机。Windows 10/11 桌面、CAD 宿主插件与查看器、GUI 登录和权限、真实打印机连接及实体打印仍需现场验证。测试生成物仅供临时验收。
+
 ## v0.2.0 Windows 与 Mac
 
 2026-11-11 在 GitHub 托管 Windows 虚拟机完成独立安装与验收，源码提交 `b5a87c3`。Windows Server 2022 使用 Python 3.11.9，Windows Server 2025 使用 Python 3.13.17，Node.js 22。两台机器各自完成以下检查。

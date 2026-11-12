@@ -834,4 +834,9 @@ def doctor():
     required = {"builder": ROOT / "Harness/build_model.py", "slicer": Path(cfg.get("slicer_path", platforms.tool_defaults()["slicer_path"]))}
     for k in ("cad_python", "blender_path"):
         required[k] = Path(cfg[k]) if cfg.get(k) else None
-    return {"root": str(ROOT), "tools": {k: {"path": str(v) if v else None, "available": bool(v and v.is_file())} for k, v in required.items()}, "printer_configured": cfg.get("printer_id") is not None, "context": context().get("loaded"), "missing_context": context().get("missing")}
+    from . import inspection
+    try:
+        inspector = inspection.self_test()
+    except (WorkflowError, OSError) as error:
+        inspector = {"available": False, "error": str(error), "fix": "Run the workspace Python with scripts/install_inspector.py", "executed": False}
+    return {"root": str(ROOT), "tools": {k: {"path": str(v) if v else None, "available": bool(v and v.is_file()), "verification": "file_exists_only"} for k, v in required.items()}, "offline_inspector": inspector, "printer_configured": cfg.get("printer_id") is not None, "context": context().get("loaded"), "missing_context": context().get("missing")}

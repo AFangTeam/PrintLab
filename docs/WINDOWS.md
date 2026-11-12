@@ -29,6 +29,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Harness\bin\printlab.ps1 c
 
 Bambu Studio、Blender、Text-to-CAD、Bambuddy 和可选建模依赖均从各自上游独立获取。按照上游 Windows 安装说明记录实际版本和可执行文件路径。来源见 [依赖说明](DEPENDENCIES.md)。
 
+独立安装步骤见 [Text-to-CAD](CAD_SETUP.md)、[Bambuddy](BAMBUDDY_SETUP.md) 和 [Bambu Studio](STUDIO_SETUP.md)。
+
 在 `Runtime/config.json` 核对 `slicer_path`、`slicer_profiles_path`、`blender_path` 和 `cad_python`。安装程序会查找 PATH 与 Program Files 中的 Bambu Studio、Blender。JSON 中 Windows 路径可使用正斜杠，例如 `C:/Program Files/Bambu Studio/bambu-studio.exe`。切片配置目录通常为安装目录的 `resources/profiles`，应以实际安装为准。
 
 需要 CadQuery 导出时，使用本机虚拟环境独立安装并检查实际导出。
@@ -49,7 +51,7 @@ Windows 的待打印页显示官方 Studio 交接提示。自动发送助手和�
 4. 单次发送后读取设备状态与任务回执。回执不明确时先对账，再决定下一步。
 5. 保存首层、完成状态与实物反馈，继续相同项目。
 
-发布包中的 `submit` 官方预约接口仍依赖独立原生检查客户端，当前发布包尚未提供该客户端的 Windows 安装验收。Windows 首版采用官方 Studio 界面操作和项目记录，自动预约与回执链路待验证。
+安装脚本会独立下载固定版本的公开文件检查器。`doctor` 实际运行文件检查，并报告依赖缺失或调用失败。Windows 的文件检查、官方预约和工作台 API 可运行；桌面自动发送助手目前仅支持 macOS，因此 Windows 的“启动打印”自动发送入口保持禁用，使用上述官方 Studio 交接步骤。
 
 具体批准和回执约束见 [打印流程](PRINTING.md)。首次接入自己的打印机需现场验证设备、切片与发送。
 

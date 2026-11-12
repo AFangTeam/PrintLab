@@ -92,3 +92,21 @@ def test_windows_sender_has_explicit_manual_route():
     assert studio_bridge.capability()['setup_supported'] is False
     with pytest.raises(core.WorkflowError, match='macOS'):
         studio_bridge.build_helper()
+
+
+def test_windows_cad_launcher_preserves_arguments_and_exit_status(tmp_path):
+    import pytest
+    if sys.platform != 'win32':
+        pytest.skip('Windows Text-to-CAD entry point')
+    command = tmp_path/'CAD tool with spaces.ps1'
+    command.write_text('''[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+ConvertTo-Json -Compress -InputObject @{ arguments = @($args); telemetry = $env:DO_NOT_TRACK }
+exit 7
+''', encoding='utf-8')
+    launcher = Path(__file__).resolve().parents[1]/'bin/text2cad.ps1'
+    result = subprocess.run(['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass',
+                             '-File', str(launcher), 'run', '中文 model.py'],
+                            env={**os.environ, 'PRINTLAB_CAD_COMMAND': str(command)},
+                            capture_output=True, text=True, encoding='utf-8', timeout=30)
+    assert result.returncode == 7, result.stderr
+    assert json.loads(result.stdout) == {'arguments': ['run', '中文 model.py'], 'telemetry': '1'}

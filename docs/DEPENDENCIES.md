@@ -10,7 +10,7 @@ PrintLab 发布包保留原创工作台、流程、适配接口与项目模板�
 | [Blender](https://www.blender.org/download/) | 有机外形、同源预览和动画视图 | 从官网安装。原工作流使用 Blender 4.5 系列，当前安装需检查导出接口。 |
 | [CadQuery](https://github.com/CadQuery/cadquery) | 参数化结构和 STEP 桥接 | 在使用者虚拟环境中从 PyPI 安装。 |
 | [build123d](https://github.com/gumyr/build123d) | Text-to-CAD 的参数化几何能力 | 按 Text-to-CAD 原项目环境要求独立取得。 |
-| [bambu-printer-mcp](https://github.com/DMontgomery40/bambu-printer-mcp) | 历史原生发送研究来源 | 发布首版使用官方 Studio 路线。旧适配器依赖上游内部模块和本机补丁，保留来源链接供研究。 |
+| [bambu-printer-mcp](https://github.com/DMontgomery40/bambu-printer-mcp) | 独立离线切片检查；历史原生发送研究来源 | 安装脚本从 npm 独立下载固定 1.1.33，通过公开 MCP inspect_print_file 调用，不提供打印机凭据，不导入上游内部模块。历史原生发送仍不可用。 |
 | [Hunyuan3D-Swift](https://github.com/ZimengXiong/Hunyuan3D-Swift) / [Hunyuan3D-2](https://github.com/Tencent-Hunyuan/Hunyuan3D-2) | 可选图生外形候选 | 代码和模型权重分别从原作者取得并检查许可。`image3d` 保留本地适配源码，需要自行准备对应隔离环境和来源清单。 |
 
 ## 许可归属
@@ -26,3 +26,11 @@ Python 包在 `Harness/pyproject.toml` 声明。网页依赖在 `Harness/studio/
 ## 升级方法
 
 先阅读原项目新版本说明，在独立目录安装，验证 CLI/MCP、模型尺寸、导出和设备只读接口，再更新本机配置。保存实际版本和验证结果，已确认的打印任务继续绑定其原文件和参数。
+
+## 独立检查器与版本锁
+
+工作台安装脚本会运行 `scripts/install_inspector.py`，从 npm 独立获取检查器及依赖，保存于被 Git 忽略的 `Runtime/third-party/bambu-inspector`。仓库仅保存下载清单与完整性校验，不分发第三方源代码、插件或模型。检查器保留其 GPL-2.0 许可。需要单独重装时使用工作台虚拟环境的 Python 执行该脚本。
+
+Python 依赖使用 `scripts/requirements.lock` 的版本和 SHA-256；前端与检查器分别使用自己的 package-lock.json。升级时更新锁文件并重跑跨平台验收，不能直接改为 latest。
+
+Text-to-CAD 的固定版本、Mac/Windows 安装命令、宿主接入和最小建模验收见 [CAD 安装指南](CAD_SETUP.md)。
