@@ -6,7 +6,7 @@ PrintLab 通过 HTTP API 读取独立运行的 Bambuddy。当前适配验证版�
 
 1. 打开自己的 Bambuddy 页面，先确认服务能独立访问。官方安装常用 `http://localhost:8000`，PrintLab 示例配置沿用 `http://127.0.0.1:8017`。将 `Runtime/config.json` 的 `bambuddy_url` 改成实际地址。
 2. 按 Bambuddy 的添加打印机流程填写自己的设备信息，等待状态与材料读回。网络模式、固件与开发者模式按自己机型核对，具体路线见连接指南。[添加打印机](https://wiki.bambuddy.cool/getting-started/first-printer/) · [连接方式](CONNECTIONS.md)
-3. 在 Bambuddy 设置中创建 API key，启用读取状态权限，关闭队列、设备控制、资料管理及其他写入权限。填写到本机 `Runtime/private/bambuddy.json` 的 `read_api_key`。
+3. 为 PrintLab 新建专用 API key，启用读取状态权限，用于设备、库存和 Bambuddy 已保存历史。填写到本机 `Runtime/private/bambuddy.json` 的 `read_api_key`。已有 API key、账号云登录、同步设置与其他应用权限按使用者现有用途保留。云访问和模型导入各自按实际功能配置，见 [同步排查](SYNC_TROUBLESHOOTING.md)。
 4. 读取打印机 ID，写入 `Runtime/config.json` 的 `printer_id`。设备型号、喷嘴、打印板与实际供料路线写入设备档案。
 5. 运行 `printlab status` 和 `printlab materials`。核对目标机器、在线状态、数据更新时间和槽位。首次连接结果写入自己的 `Library/Devices/X2D/installed.md`。
 

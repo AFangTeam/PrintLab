@@ -17,7 +17,7 @@ Bambuddy 捕获的 Studio/Handy 打印历史可以在工作台显示；历史可
 
 不能把“所有工作台连接都必须打开 LAN Only”作为统一前提。只读监控、第三方直接控制和官方 Studio 发送有不同条件。先查你当前机型、固件及所选路线。
 
-Bambuddy 文档对较新固件的完整第三方控制要求 LAN Only 与 Developer Mode；仅 LAN Only 而无开发者模式可能只有监控能力。请按对应机型菜单启用，并读取新的访问码，切换模式后旧码可能失效。官方 Studio 路线使用官方应用的连接与授权，不能把原生第三方通道受限说成所有发送都不可用。[Bambuddy 设备与开发者模式说明](https://wiki.bambuddy.cool/reference/printers/)
+Bambuddy 文档对较新固件的完整第三方控制要求 LAN Only 与 Developer Mode；仅 LAN Only 而无开发者模式可能只有监控能力。先确认使用者是否需要 Handy 云打印和云端记录，说明模式切换对这些功能的影响，再由使用者选择路线。选定本地控制路线后按对应机型菜单配置并读取访问码，切换模式后旧码可能失效。官方 Studio 路线使用官方应用的连接与授权，不能把原生第三方通道受限说成所有发送都不可用。[Bambuddy 设备与开发者模式说明](https://wiki.bambuddy.cool/reference/printers/)
 
 在 Bambuddy 中添加设备需要对应的地址、序列号、访问码和可通信网络。核对电脑/服务到打印机的连通性，避免访客 Wi-Fi 隔离。只读验收应读回正确机型/身份、当前状态、温度及 AMS 数据；不要通过加热、运动或打印试探连接。[首次设备配置](https://wiki.bambuddy.cool/getting-started/first-printer/)
 
