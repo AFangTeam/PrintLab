@@ -1,12 +1,16 @@
 """Actual sockets and CLI startup: a second workspace cannot share the port."""
 import errno
+import importlib.util
 from pathlib import Path
 import socket
 import subprocess
 import sys
 
 import pytest
-import serve
+
+spec = importlib.util.spec_from_file_location('printlab_server', Path(__file__).resolve().parents[1] / 'serve.py')
+serve = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(serve)
 
 
 @pytest.mark.parametrize('reuse_address', [False, True])
