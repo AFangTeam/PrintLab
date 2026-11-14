@@ -14,7 +14,7 @@ def test_new_project_inherits_shared_model_policy_and_remix_handoff(tmp_path, mo
     core.new_project('Existing model remix')
     project = core.project_path('P001')
     assert (project / 'Review/remix-plan.md').is_file()
-    assert '尚未核实' in (project / 'Review/model-routing.md').read_text()
+    assert '尚未核实' in (project / 'Review/model-routing.md').read_text(encoding='utf-8')
     # Defaults do not fabricate evidence that a modeling task actually ran.
     assert not (project / 'Review/model-routing.json').exists()
     first = {d['path']: d for d in core.context('P001')['documents']}

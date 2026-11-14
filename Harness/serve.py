@@ -16,6 +16,20 @@ import uvicorn
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def listening_socket(host, port):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        # Windows REUSEADDR permits concurrent listeners and ambiguous routing.
+        option = socket.SO_EXCLUSIVEADDRUSE if sys.platform == 'win32' else socket.SO_REUSEADDR
+        sock.setsockopt(socket.SOL_SOCKET, option, 1)
+        sock.bind((host, port))
+        sock.listen(2048)
+        return sock
+    except OSError:
+        sock.close()
+        raise
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('service', choices=['studio', 'bambuddy'])
@@ -43,13 +57,13 @@ def main():
     sockets=[]
     try:
         for host in hosts:
-            sock=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-            sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
             try:
-                sock.bind((host,port));sock.listen(2048);sockets.append(sock)
-            except OSError:
-                sock.close()
-                if host == '127.0.0.1':raise
+                sockets.append(listening_socket(host, port))
+            except OSError as error:
+                if host == '127.0.0.1':
+                    p.exit(1, f'Cannot listen on {host}:{port}: {error}. '
+                           'Check the existing service before starting another workbench; '
+                           'use --port for a separate workspace.\n')
                 print('Private Tailscale address not available; restart when network returns.',flush=True)
         config=uvicorn.Config(module,loop='asyncio',host='127.0.0.1',port=port,proxy_headers=False)
         uvicorn.Server(config).run(sockets=sockets)

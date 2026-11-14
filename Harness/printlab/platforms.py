@@ -42,10 +42,13 @@ def protect_directory(path):
     sid = next(csv.reader(identity.splitlines()))[1]
     # Replace the directory DACL, including explicit entries inherited from
     # an existing installation or supplied by Windows temporary-directory APIs.
+    # Limit the change to access rules: the one-argument overload also marks
+    # audit rules modified, requiring SeSecurityPrivilege on ordinary accounts.
     command = (
         '$ErrorActionPreference="Stop"; '
         '$acl = New-Object System.Security.AccessControl.DirectorySecurity; '
-        '$acl.SetSecurityDescriptorSddlForm($env:PRINTLAB_PRIVATE_DACL); '
+        '$acl.SetSecurityDescriptorSddlForm($env:PRINTLAB_PRIVATE_DACL, '
+        '[System.Security.AccessControl.AccessControlSections]::Access); '
         '[System.IO.Directory]::SetAccessControl($env:PRINTLAB_PRIVATE_PATH, $acl)'
     )
     subprocess.run(['powershell', '-NoProfile', '-Command', command], check=True,
