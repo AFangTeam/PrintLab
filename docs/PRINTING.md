@@ -11,6 +11,8 @@ PrintLab 工作台可在未连接设备时启动。接入 Bambuddy 后提供状�
 | 工作台按钮调用 Bambuddy 队列 | Mac/Windows 共用 HTTP 发送代码，当前接入 A1、A1 mini、P1S、X1 Carbon 的 AMS 路线。需绑定 `bambuddy_queue`、读回正确机型、可用存储卡、IDLE 与具体材料；文件、排队、启动及异常对账使用原任务记录。软件模拟已通过，实际设备接受与首层待现场验证。 |
 | 历史原生 MCP 发送 | 发布首版未提供可执行客户端。来源和独立安装边界见 DEPENDENCIES.md。 |
 
+**A1 无 AMS / Ext 外挂：** 当前不属于专用 X2D Studio 助手或 Bambuddy AMS 队列的支持范围。官方 Studio 界面可作为用户独立操作的临时路径，须核对具体切片、设备及 Ext 材料并保留记录；不伪造工作台发送回执。Codex 界面操作报 `noWindowsAvailable` 等错误时，按 [Computer Use 恢复流程](STUDIO_COMPUTER_USE.md) 接续，不能靠升级 PrintLab 或替换机型映射宣称修好。
+
 ## 独立离线检查
 
 安装程序独立下载 bambu-printer-mcp 1.1.33。工作台预检和官方 Studio 预约通过公开 MCP 文件检查接口核对相同 SHA-256 与盘号；不会传入设备凭据、调用发送工具或启动打印。PrintLab 自身的官方模板、载料及温度检查继续执行。检查成功只证明文件检查通过，仍须核验实时设备、材料、授权及发送助手。

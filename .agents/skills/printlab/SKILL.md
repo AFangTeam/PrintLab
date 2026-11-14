@@ -15,6 +15,7 @@ license: PolyForm Noncommercial 1.0.0; see the PrintLab repository LICENSE.md an
 - 开始设计或接续：读取 Context/profile.md、Context/workflow.md、设备档案；运行当前 CLI 的 --help 和 context，按 project.json 的 latest_session 继续原项目。新作品先了解用途、尺寸、设备、材料和验收标准。生图前用 constraints capture 保存实际来源，进入 CAD/切片前从 context 核对设备材料或需求变化。
 - 外形、CAD、切片：按 Context/image-to-print.md 和 Context/cad-master-design.md 继承已选方案；真实源模型导出预览，关键接口与实测独立核对。依据当前机器比较打印方向、材料、支撑、分盘及完整工时。
 - 打印：先读 docs/PRINTING.md。只通过工作台/CLI 的统一批准和发送入口，绑定具体模型版本、切片文件、设备、材料与有效清板确认。安装或设计不授权打印。结果未知先对账，不自动重发；不借第三方插件绕过 PrintLab 检查。
+- Studio 窗口控制故障：遇到 `noWindowsAvailable`、`timeoutReached` 或 `Computer Use is not active`，读取 docs/STUDIO_COMPUTER_USE.md。一次工具调用只做一步，最多一轮轻量恢复；优先复用切片或已验证的官方 CLI。无 AMS 的 A1 不改用 X2D 助手或 AMS 队列。自动发送不支持时，明确交接使用者在官方 Studio 中独立操作并记录来源，不伪造 PrintLab 回执。
 - 共同记录：使用 workspace 命令的哈希检查追加偏好、事实与经验，冲突后重读。用户确认拥有的其他耗材通过 material-intake 写入 Bambuddy，超时后使用相同请求标识对账。
 - 交接：用 CLI handoff 保存完成项、当前版本、证据、未知项与下一步，再通过 context 读回。设备已结束不等于实物合格。
 
