@@ -6,6 +6,7 @@ An ambiguous write is never automatically retried.
 from __future__ import annotations
 
 import datetime as dt
+import copy
 import time
 import uuid
 import json
@@ -412,7 +413,7 @@ def submit(pid, jid, execute=False, client_factory=None):
         approval = core.read_json(jd / "approval.json")
         client = factory(write=execute)
         try:
-            status = preflight(p, jd, job, approval, client)
+            status = copy.deepcopy(preflight(p, jd, job, approval, client))
             from . import recovery
             recovery.before_submit(jd, job, approval, client)
             if not execute:
@@ -447,6 +448,11 @@ def submit(pid, jid, execute=False, client_factory=None):
                 current_status = client.get(f"printers/{job['printer_id']}/status")
                 validate_ready(current_status, job["mapping"], printer_model=job.get('sliced_printer_model'))
                 validate_slice_route(jd, job, current_status)
+                original_trays, current_trays = reported_trays(status), reported_trays(current_status)
+                identity_fields = ('tray_type', 'tray_color', 'tray_sub_brands', 'tray_info_idx', 'tray_id_name')
+                if any(original_trays[slot].get(field) != current_trays[slot].get(field)
+                       for slot in job["mapping"]["ams_mapping"] for field in identity_fields):
+                    raise core.WorkflowError("Loaded filament identity changed while staging; reconcile the queue before proceeding")
                 if core.job_fingerprint(p, jd, job) != approval["fingerprint"]:
                     raise core.WorkflowError("Approved files changed while staging")
                 receipt.update(state="start_requested", start_requested_at=core.now())

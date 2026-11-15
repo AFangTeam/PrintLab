@@ -134,13 +134,17 @@ def test_queue_mutation_cannot_start_or_erase_receipt(queue_setup, field, value)
     assert not workbench.check('P001', 'Jone')['ready']
 
 
-def test_material_changed_during_upload_is_rechecked_before_start(queue_setup):
+@pytest.mark.parametrize('field,value', [
+    ('tray_type', 'PLA'), ('tray_color', 'FFFFFFFF'), ('tray_sub_brands', 'PETG HF'),
+    ('tray_info_idx', None), ('tray_id_name', 'changed'),
+])
+def test_material_changed_during_upload_is_rechecked_before_start(queue_setup, field, value):
     client, base, directory = queue_setup
     post = client.post
     def changed(path, **kwargs):
         result = post(path, **kwargs)
         if path == 'queue/':
-            base.live['ams'][0]['tray'][0]['tray_type'] = 'PLA'
+            base.live['ams'][0]['tray'][0][field] = value
         return result
     client.post = changed
     operation = start_once()
