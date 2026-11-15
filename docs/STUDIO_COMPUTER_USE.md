@@ -1,48 +1,69 @@
-# Studio 能看见窗口，但 Codex 操作报错
+# Codex 找不到 Studio 窗口时怎么办
 
-适用于 Codex Computer Use 返回 `noWindowsAvailable`、`timeoutReached` 或 `Computer Use is not active`。先区分错误来源；这些字符串本身不证明 PrintLab、打印机、Studio 版本或系统权限存在问题。
+## 这次修了什么
 
-## Issue #7 的结论与当前边界
+[Issue #7](https://github.com/AFangTeam/PrintLab/issues/7) 来自 MacBook Air M1 / macOS 15.6.1、中文 Studio 02.08.02.61、A1 0.4 mm、PLA、无 AMS / Ext。`noWindowsAvailable` 由 Codex Computer Use 返回；当时没有调用 PrintLab 发送助手。CLI 和人工界面切片成功。报告中的组合调用不足以确定底层哪一步失败，后来锁屏也不能解释此前错误。
 
-[观众报告 #7](https://github.com/AFangTeam/PrintLab/issues/7) 提供了 MacBook Air M1 / macOS 15.6.1、Studio 02.08.02.61、PrintLab v0.4.0，以及 **A1、无 AMS、Ext 外挂 PLA** 的记录。报错来自 `mcp__cua_repl.js` / Computer Use；没有调用 PrintLab 的 X2D 发送助手。窗口读取和截图曾成功，界面操作的组合调用却失败。相同工程的官方 CLI 切片和人工 GUI 切片均成功，用户后来报告已手动开始打印。
+**v0.4.2 增加独立的 Mac Studio 窗口控制入口。** Codex 可以调用 PrintLab 自己的助手读取窗口、恢复指定窗口、打开已有切片和发送准备页，不必一直重试发生故障的 Computer Use 调用。修复了助手对 macOS `/private/tmp` 路径的误判，改为按窗口身份截图，并在点击前检查前台、窗口位置和遮挡。超时保留回执，绝不自动重发。
 
-这将问题定位到 Computer Use 调用链，尚不能确定底层窗口枚举、激活、输入或 Studio 兼容性的具体根因。权限开启是调查时证据；后来发生的锁屏也不能反向解释此前错误。一次调用含多个 `await`，不能确定具体哪一步失败。
+这不是 Codex 引擎补丁，也不代表已在报告者的 M1 上验证通过。v0.4.1 只有 Windows 修复，不能用它验证本次新增能力。没有证据要求升级或降级 Studio。
 
-PrintLab v0.4.1 修复的是 Windows 初始化权限和端口冲突，**不是本问题的修复版**。本页补充的是 Agent 恢复和交接流程，不是 Computer Use 引擎补丁，也没有证明升级 Studio 或 Codex 能修复该错误。旧版用户可以直接把本页交给 Agent，无需重装或迁移工作空间。
+## 最少操作
 
-## 最短恢复流程
+让 Codex 按 [更新指南](UPGRADING.md) 升级到 v0.4.2，保留工程、配置、材料和旧任务。然后在新版工作空间执行：
 
-1. **先保留成果和执行记录。** 查看当前工程、已生成切片、已有任务回执和设备状态。超时不等于动作未执行；可能已经保存文件、打开对话框或发送任务。已在打印或结果不明的作业，先对账，不重新发送。
-2. **最多做一轮轻量恢复。** 若当前锁屏，请使用者解锁。按当前宿主工具文档重新取得 Studio 应用对象和最新窗口状态；读取状态、截图、输入各用一次独立工具调用。不要重放历史坐标，不要把旧对象改名当作重新绑定。首次调用与后续动作遵循工具实时返回的文档，不硬编码旧 API。
-3. **读取成功不证明输入恢复。** 对明确未执行的非发送动作，在取得新鲜状态后最多尝试一次；再次出错就结束这轮 GUI 自动重试。最终发送、启动任务、加热或运动不用于验证窗口恢复。需要深入调查时另行保留失败步骤和当时窗口状态，不让日常打印依赖长时间排障。
-4. **切片继续走已有可靠入口。** 已有正确切片则直接检查、复用，不为排查重复切片。需要切片时，优先当前项目已验证的官方 Studio CLI 命令；PrintLab 管理的构建按当前 `printlab slice --help` 和项目记录调用。保留 A1、0.4 mm、实际板型、PLA 与 Ext 映射，不套用 X2D/AMS 配置。已有 Studio 工程不满足 PrintLab 受控构建要求时，保留原件，用副本和本机实际 `--help` 核对 CLI，不伪造 build manifest 或绕过检查。输出另存并核对源文件哈希、盘号、机型、材料、刀路检查、预计时间和用量。CLI 切片不授权发送。
-5. **界面仍不可操作时，明确交接最少的人工步骤。** 对 #7 的 A1 外挂配置，保留已成功切片的文件；让使用者在官方 Studio 中核对 A1 / Ext 和具体文件，并在当前打印确认及清板条件满足后完成发送。记录为“使用者手动发送”，随后只读核对任务和实际结果，不冒称 Agent 自动发送成功。若这项任务已经手动发送，本步骤不再执行。
-
-不要为了修复 Computer Use 而反复开关权限、删除 TCC 数据、修改宿主内部文件、杀掉未保存的 Studio 工程、改变打印机网络模式，或盲目升级/降级。只有新证据指向某项设置时才针对性处理。
-
-## A1 外挂与发送通道
-
-- 专用 Mac Studio 发送助手当前只适配文档列出的 X2D 单料 AMS 组合；A1 不能调用该助手来绕过 Computer Use。
-- 当前 Bambuddy 队列实现要求 `use_ams=true`。A1 无 AMS / Ext 不属于该路线的已支持配置；不能伪造 AMS 映射或把 `use_ams` 改为 true 来放行。
-- PrintLab 的统一发送预检仍须满足实际配置要求。当前配置未支持时，保持自动发送阻塞；用户在官方 Studio 中独立操作的临时流程须另记来源和文件，不伪造 PrintLab 发送回执或放宽门禁。
-
-详细边界见 [打印说明](PRINTING.md) 和 [机型验证范围](MACHINE_SUPPORT.md)。人工交接是可用的临时路径，不等于自动化故障已解决。
-
-## 可以直接给旧版 Codex 的指令
-
-```text
-请按 https://github.com/AFangTeam/PrintLab/blob/main/docs/STUDIO_COMPUTER_USE.md 接续我的 A1 无 AMS / Ext 项目。
-先核对已有切片和已发送任务，不要重发已打印或结果不明的作业。
-不要因 noWindowsAvailable 重装 PrintLab 或盲目升级 Studio。最多做一轮按当前工具文档重新绑定、单步读取窗口的轻量恢复；每次工具调用只做一步。
-已有正确切片就复用；需要切片则优先使用本机已成功的官方 Studio CLI 和原 A1/Ext 配置，输出另存、核对文件与参数。
-窗口操作仍失败就停止 GUI 重试，列出需要我在官方 Studio 中完成的最少步骤。不要改用 X2D 助手或 AMS 队列，不要自动发送。
-保留任务、文件和结果记录，区分已解决的流程阻塞与尚未修复的 Computer Use 错误。
+```bash
+./Harness/bin/printlab studio-bridge build
+./Harness/bin/printlab studio-bridge windows
 ```
 
-## 跟踪和上游反馈
+构建需要 macOS 14+ 和 Apple Swift 编译工具。若缺少工具，由 Codex 按系统提示处理；构建成功不等于系统权限已授予。只有 `windows` 显示权限缺失时才执行 `studio-bridge permissions`，按系统要求给 **PrintLab发送助手** 授予辅助功能和屏幕读取权限，再重跑 `windows`。不要删除 TCC 数据或给其他程序反复授权。
 
-已有 #7 的诊断信息足够支持上述处理，不要求报告者再次提交全部环境和日志。后续只有新结果才补充：轻量恢复是否有效、CLI 是否继续可用、若再次失败是哪一个独立工具调用。报告者没有新的复现时保持未知。
+`windows` 返回进程 ID、完整窗口标题、Studio 版本和会话状态。后续目标必须来自这次实际返回，不能照抄示例数字。
 
-底层 Computer Use 由 Codex 宿主管理，PrintLab 仓库不能直接修补其窗口引擎。需要上游支持时，可由报告者将 #7 链接及必要的脱敏单步记录交给 [OpenAI 支持](https://help.openai.com/en/articles/11369540-using-codex-with-your-chatgpt-plan)，避免上传整个私人工作目录。未实际提交上游报告时不声称已转交。
+```bash
+# 只观察指定窗口
+./Harness/bin/printlab studio-bridge inspect --studio-pid PID --window-title '完整标题'
+# 恢复并激活该窗口一次，等待窗口稳定，不点击打印按钮
+./Harness/bin/printlab studio-bridge recover --studio-pid PID --window-title '完整标题'
+```
 
-维护者不能仅因本页合入就把 #7 标成已修复；应继续区分流程规避措施、上游根因和报告者机器上的复验结果。
+需要打开已有的单盘 `.gcode.3mf` 时，先计算当前文件 SHA-256，再运行：
+
+```bash
+./Harness/bin/printlab studio-bridge open-file --file '/绝对路径/文件.gcode.3mf' --sha256 '实际64位哈希'
+```
+
+该命令保留原工程，在 `Runtime/studio-previews` 生成经过逐项检查的预览副本，刀路和打印参数不变，不重新切片；另开 Studio 实例，返回新的进程 ID 和标题。打开后先 `inspect` 核对实际内容，再用返回的目标打开准备页：
+
+```bash
+./Harness/bin/printlab studio-bridge open-panel --studio-pid PID --window-title '文件.gcode'
+```
+
+`opened_panel: true` 表示实际读到了“发送打印任务”窗口，**没有点击最终发送**。按钮被其他窗口或通知遮挡时会拒绝点击；先移开遮挡、重新观察，再决定是否重试。超时或读回失败时先看当前窗口，不能假定动作没发生。
+
+## A1 外挂与最终发送
+
+通用窗口命令不要求 X2D、AMS 或打印机名称，因此 A1 无 AMS 也能使用。它们不创建打印批准或发送记录，也不代替机型、材料和清板核验。
+
+**A1 / Ext 的最终自动发送尚未适配和实机验证。** 工作台现有自动发送仍限已验证的 X2D 单料 AMS 组合，Bambuddy 队列仍要求 `use_ams=true`。不能伪造 AMS、删除检查或把 A1 套进 X2D 发送流程。A1 到准备页后核对实际 A1 / Ext 与具体文件，最终发送由使用者在当前任务获得确认后完成；已有任务已发送或结果不明时，先对账，不再发送。
+
+如果用户只需要继续当前已成功切片的打印，可以直接在 Studio 中完成，无需为了排障升级。若希望 Codex 继续自动操作窗口，推荐升级本版，避免要求用户长时间 debug。
+
+## 报错与验证范围
+
+错误包含 `code`、`stage` 和具体原因，区分权限、锁屏、窗口缺失、激活失败、窗口变化、遮挡和动作后未读到结果。未知回执保留在 `Runtime/studio-bridge-ipc` 的私有目录中；核实结果之前不要清理或重试发送。诊断只分享必要的脱敏错误，不能上传整个 Runtime 或项目目录。
+
+本机中文 Studio 02.08.02.61 已实际验证窗口读取、指定窗口捕获、A1 测试切片的发送准备页、遮挡拒绝、独立实例打开以及 X2D 预览。A1、A1 mini、P1S、X1 Carbon、X2D 的合成模型均通过官方 CLI 切片。没有 A1 实体发送验证，也没有复现报告者完全相同的底层错误。详细范围见 [机型说明](MACHINE_SUPPORT.md)。
+
+#7 保持开放，等待报告者用新助手做一次不发送的窗口复验。成功只确认新路径在其电脑可用，不能据此声称 Codex 的窗口引擎已修复。
+
+## 可以直接给观众的 Codex
+
+```text
+请将我的 PrintLab 按官方 docs/UPGRADING.md 升级到 v0.4.2，保留工程、配置、设备、材料和任务记录，不重发旧任务。
+按 docs/STUDIO_COMPUTER_USE.md 构建 PrintLab发送助手，读取 windows；只在缺权限时引导我完成一次系统授权。
+我的配置是 A1、0.4 mm、PLA、无 AMS、Ext。保留实际配置，不套用 X2D/AMS。
+复用已有正确切片，计算 SHA-256，通过 studio-bridge open-file 打开独立预览，inspect 核对后用 open-panel 打开发送准备页。不要最终发送，不要反复调用失败的 Computer Use。
+报告成功到哪一步；失败只给我 code、stage、脱敏原因和一个最少操作。超时先读回，不重放动作。不要上传凭据或私人工程。
+```

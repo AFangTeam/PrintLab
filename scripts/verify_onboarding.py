@@ -101,6 +101,13 @@ print(json.dumps({'ok': True}))
 if __name__ == '__main__':
     main()
     if os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ.get('PRINTLAB_SKIP_RELEASE_CHECK') != '1':
+        if sys.platform == 'darwin':
+            with tempfile.TemporaryDirectory(prefix='PrintLab Swift check ') as temporary:
+                helper = Path(temporary)/'StudioBridge'
+                subprocess.run(['swiftc', str(ROOT/'Harness/macos/StudioBridge.swift'), '-o', str(helper)],
+                               check=True, timeout=90)
+                subprocess.run([sys.executable, str(ROOT/'scripts/verify_studio_bridge_ipc.py'),
+                                '--helper', str(helper)], check=True, timeout=120)
         subprocess.run([sys.executable, str(ROOT / 'scripts/verify_release_install.py')], check=True)
         subprocess.run([sys.executable, str(ROOT / 'scripts/verify_cad_install.py')], check=True)
         subprocess.run([sys.executable, str(ROOT / 'scripts/verify_bambuddy_install.py')], check=True)

@@ -7,10 +7,27 @@ import Vision
 import CryptoKit
 import Darwin
 
-struct BridgeError: Error { let message: String }
-func fail(_ s: String) throws -> Never { throw BridgeError(message:s) }
+struct BridgeError: Error {
+    let message: String
+    let code: String
+    let stage: String
+}
+func fail(_ s: String, code: String = "validation_failed", stage: String = "validation") throws -> Never {
+    throw BridgeError(message:s, code:code, stage:stage)
+}
 func attr(_ e: AXUIElement, _ name: String) -> CFTypeRef? {
     var result: CFTypeRef?; AXUIElementCopyAttributeValue(e,name as CFString,&result); return result
+}
+func accessibleWindows(_ pid: pid_t) throws -> [AXUIElement] {
+    let ax = AXUIElementCreateApplication(pid)
+    AXUIElementSetMessagingTimeout(ax, 2)
+    var value: CFTypeRef?
+    let result = AXUIElementCopyAttributeValue(ax, kAXWindowsAttribute as CFString, &value)
+    guard result == .success, let list = value as? [AXUIElement] else {
+        try fail("Cannot read Studio windows (AX error \(result.rawValue))",
+                 code:"ax_windows_unavailable", stage:"window_discovery")
+    }
+    return list
 }
 var responseURL: URL? = nil
 var ipcRequestID: String? = nil
@@ -28,11 +45,18 @@ func ipcArguments(_ original:[String]) throws -> [String] {
     guard original.count==3 else {try fail("Invalid IPC invocation")}
     let input=URL(fileURLWithPath:original[1]);let output=URL(fileURLWithPath:original[2])
     let parent=input.deletingLastPathComponent()
-    guard input.path.hasPrefix("/"),input.lastPathComponent=="request.json",output.lastPathComponent=="response.json",output.deletingLastPathComponent()==parent,
-          !FileManager.default.fileExists(atPath:output.path),input.resolvingSymlinksInPath()==input,parent.resolvingSymlinksInPath()==parent else {try fail("Invalid IPC paths")}
+    guard original[1].hasPrefix("/"),original[2].hasPrefix("/"),input.lastPathComponent=="request.json",output.lastPathComponent=="response.json",output.deletingLastPathComponent()==parent else {try fail("Invalid IPC paths")}
+    // Foundation rewrites the legitimate /private/tmp and /private/var aliases
+    // to /tmp and /var. URL equality therefore rejects Python's resolved
+    // tempfile paths even when neither the file nor its private parent is a
+    // symlink. Inspect the actual directory entries instead.
+    var outputStat = stat()
+    guard lstat(output.path, &outputStat) != 0, errno == ENOENT else {try fail("IPC response already exists or is inaccessible")}
     for path in [parent.path,input.path] {
-        let attrs=try FileManager.default.attributesOfItem(atPath:path)
-        guard (attrs[.ownerAccountID] as? NSNumber)?.uint32Value==getuid(),let mode=attrs[.posixPermissions] as? NSNumber,mode.intValue & 0o077==0 else {try fail("IPC ownership or permissions mismatch")}
+        var metadata = stat()
+        let kind = path == parent.path ? S_IFDIR : S_IFREG
+        guard lstat(path, &metadata) == 0, metadata.st_mode & S_IFMT == kind,
+              metadata.st_uid == getuid(), metadata.st_mode & 0o077 == 0 else {try fail("IPC ownership, type, or permissions mismatch")}
     }
     let request=try JSONSerialization.jsonObject(with:Data(contentsOf:input)) as? [String:Any] ?? [:]
     guard let id=request["request_id"] as? String,UUID(uuidString:id) != nil,let created=request["created_at"] as? Double,abs(Date().timeIntervalSince1970-created)<120,
@@ -41,8 +65,7 @@ func ipcArguments(_ original:[String]) throws -> [String] {
     return args
 }
 func windows(_ pid: pid_t) -> [[String:Any]] {
-    let ax = AXUIElementCreateApplication(pid)
-    return (attr(ax,kAXWindowsAttribute) as? [AXUIElement] ?? []).map { w in
+    return ((try? accessibleWindows(pid)) ?? []).map { w in
         ["title":(attr(w,kAXTitleAttribute) as? String ?? ""),
          "minimized":(attr(w,kAXMinimizedAttribute) as? Bool ?? false),
          "edited":(attr(w,"AXEdited") as? Bool ?? false)]
@@ -57,35 +80,71 @@ func probe() -> [String:Any] {
             "instances":apps.map { ["pid":Int($0.processIdentifier),"active":$0.isActive,"windows":windows($0.processIdentifier)] }]
 }
 func target(_ pid:pid_t) throws -> NSRunningApplication {
-    guard AXIsProcessTrusted(),CGPreflightScreenCaptureAccess() else {try fail("Accessibility or screen capture permission missing for this process")}
-    guard let app=NSRunningApplication(processIdentifier:pid),app.bundleIdentifier=="com.bambulab.bambu-studio" else {try fail("Target is not Bambu Studio")}
+    guard AXIsProcessTrusted() else {try fail("Accessibility permission missing for this process", code:"accessibility_denied", stage:"permissions")}
+    guard CGPreflightScreenCaptureAccess() else {try fail("Screen capture permission missing for this process", code:"screen_capture_denied", stage:"permissions")}
+    let session = CGSessionCopyCurrentDictionary() as? [String:Any] ?? [:]
+    guard session["kCGSSessionOnConsoleKey"] as? Bool == true,
+          session["CGSSessionScreenIsLocked"] as? Bool != true else {
+        try fail("Desktop session is locked or unavailable", code:"desktop_unavailable", stage:"session")
+    }
+    guard let app=NSRunningApplication(processIdentifier:pid),app.bundleIdentifier=="com.bambulab.bambu-studio" else {try fail("Target is not Bambu Studio", code:"target_missing", stage:"window_discovery")}
     return app
+}
+func visibleWindows(_ pid: pid_t, _ title: String) -> [[String:Any]] {
+    let infos = CGWindowListCopyWindowInfo([.optionOnScreenOnly,.excludeDesktopElements], kCGNullWindowID) as? [[String:Any]] ?? []
+    return infos.filter {
+        ($0[kCGWindowOwnerPID as String] as? Int) == Int(pid) &&
+        ($0[kCGWindowName as String] as? String) == title &&
+        [0,8].contains($0[kCGWindowLayer as String] as? Int ?? -1)
+    }
 }
 func snapshot(_ pid:pid_t,_ title:String,raise:Bool=false) throws -> [String:Any] {
     let app=try target(pid)
-    let ax=AXUIElementCreateApplication(pid)
-    let matches=(attr(ax,kAXWindowsAttribute) as? [AXUIElement] ?? []).filter {(attr($0,kAXTitleAttribute) as? String)==title}
-    guard matches.count==1 else {try fail("Exact accessible window is absent or ambiguous")}
+    let matches=try accessibleWindows(pid).filter {(attr($0,kAXTitleAttribute) as? String)==title}
+    guard matches.count==1 else {try fail("Exact accessible window is absent or ambiguous", code:matches.isEmpty ? "ax_window_missing" : "ax_window_ambiguous", stage:"window_discovery")}
     if raise {
         app.activate(options:[.activateAllWindows])
-        AXUIElementSetAttributeValue(matches[0],kAXMinimizedAttribute as CFString,kCFBooleanFalse)
-        AXUIElementPerformAction(matches[0],kAXRaiseAction as CFString)
-        // AppKit refreshes activation state only when the main run loop runs.
-        let deadline = Date(timeIntervalSinceNow:2)
-        repeat {
-            RunLoop.current.run(until:Date(timeIntervalSinceNow:0.05))
-        } while NSWorkspace.shared.frontmostApplication?.processIdentifier != pid && Date() < deadline
-        guard NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else {
-            try fail("Studio activation was not granted; no button clicked")
+        if attr(matches[0], kAXMinimizedAttribute) as? Bool == true {
+            let restored = AXUIElementSetAttributeValue(matches[0], kAXMinimizedAttribute as CFString, kCFBooleanFalse)
+            guard restored == .success else {
+                try fail("Cannot restore the exact minimized Studio window (AX error \(restored.rawValue))", code:"restore_failed", stage:"window_recovery")
+            }
         }
+        let raised = AXUIElementPerformAction(matches[0], kAXRaiseAction as CFString)
+        guard raised == .success else {try fail("Cannot raise the exact Studio window (AX error \(raised.rawValue))", code:"raise_failed", stage:"window_recovery")}
     }
-    let infos=CGWindowListCopyWindowInfo([.optionOnScreenOnly,.excludeDesktopElements],kCGNullWindowID) as? [[String:Any]] ?? []
-    let candidates=infos.filter {($0[kCGWindowOwnerPID as String] as? Int)==Int(pid) && ($0[kCGWindowName as String] as? String)==title && [0,8].contains($0[kCGWindowLayer as String] as? Int ?? -1)}
-    guard candidates.count==1,let info=candidates.first,let wid=info[kCGWindowNumber as String] as? Int,let bounds=info[kCGWindowBounds as String] as? [String:Double] else {try fail("Exact visible window is absent or ambiguous")}
+    // AXRaise returning is not proof that the compositor has a capturable window.
+    // Recover once, then observe until the exact window and geometry settle.
+    let deadline = Date(timeIntervalSinceNow:raise ? 3 : 0)
+    var candidates = visibleWindows(pid, title)
+    var stableIdentity: NSDictionary?
+    var settled = !raise
+    while raise {
+        if candidates.count > 1 {break}
+        let identity = candidates.first.map { ["id":$0[kCGWindowNumber as String] ?? -1,
+                                              "bounds":$0[kCGWindowBounds as String] ?? [:]] as NSDictionary }
+        if let identity=identity, let previous=stableIdentity,
+           identity.isEqual(previous), NSWorkspace.shared.frontmostApplication?.processIdentifier == pid {settled=true;break}
+        if Date() >= deadline {break}
+        stableIdentity = identity
+        RunLoop.current.run(until:Date(timeIntervalSinceNow:0.1))
+        candidates = visibleWindows(pid, title)
+    }
+    if raise && NSWorkspace.shared.frontmostApplication?.processIdentifier != pid {
+        try fail("Studio activation was not granted; no button clicked", code:"activation_failed", stage:"window_recovery")
+    }
+    guard candidates.count==1,let info=candidates.first,let wid=info[kCGWindowNumber as String] as? Int,let bounds=info[kCGWindowBounds as String] as? [String:Double],
+          (bounds["Width"] ?? 0) > 0, (bounds["Height"] ?? 0) > 0 else {
+        try fail("Exact visible window is absent or ambiguous", code:candidates.count > 1 ? "visible_window_ambiguous" : "visible_window_missing", stage:"window_capture")
+    }
+    guard settled else {try fail("Studio window geometry did not settle", code:"window_unstable", stage:"window_recovery")}
     let path=FileManager.default.temporaryDirectory.appendingPathComponent("printlab-studio-\(UUID().uuidString).png")
     defer {try? FileManager.default.removeItem(at:path)}
-    let task=Process();task.executableURL=URL(fileURLWithPath:"/usr/sbin/screencapture");task.arguments=["-x","-R",["X","Y","Width","Height"].map{String(Int(bounds[$0] ?? 0))}.joined(separator:","),path.path];task.standardError=FileHandle.nullDevice;try task.run();task.waitUntilExit()
-    guard task.terminationStatus==0,let data=try? Data(contentsOf:path),let image=NSImage(data:data),let cg=image.cgImage(forProposedRect:nil,context:nil,hints:nil) else {try fail("Window capture failed")}
+    // Capture the selected window, not a desktop rectangle that may contain
+    // another app's notification. Input still verifies the real hit target.
+    let task=Process();task.executableURL=URL(fileURLWithPath:"/usr/sbin/screencapture");task.arguments=["-x","-o","-a","-l",String(wid),path.path];task.standardError=FileHandle.nullDevice;try task.run();task.waitUntilExit()
+    let capturedAt = Date().timeIntervalSince1970
+    guard task.terminationStatus==0,let data=try? Data(contentsOf:path),let image=NSImage(data:data),let cg=image.cgImage(forProposedRect:nil,context:nil,hints:nil) else {try fail("Window capture failed", code:"capture_failed", stage:"window_capture")}
     let req=VNRecognizeTextRequest();req.recognitionLevel = .accurate;req.recognitionLanguages=["zh-Hans","en-US"];req.usesLanguageCorrection=false
     // Normalize low-density desktop captures for Vision; retain original pixels
     // for selection color, geometry and the final window fingerprint.
@@ -114,22 +173,46 @@ func snapshot(_ pid:pid_t,_ title:String,raise:Bool=false) throws -> [String:Any
         }
         return ["text":best.string,"confidence":Double(best.confidence),"x":Double(b.minX),"y":Double(1-b.maxY),"width":Double(b.width),"height":Double(b.height),"green_pixels":greenCount,"green_center_x":greenCount>0 ? greenX/Double(greenCount) : -1]
     }
-    return ["ok":true,"pid":Int(pid),"window_id":wid,"title":title,"bounds":bounds,"width":cg.width,"height":cg.height,
-            "sha256":SHA256.hash(data:cg.dataProvider!.data! as Data).map{String(format:"%02x",$0)}.joined(),"observed_at":Date().timeIntervalSince1970,"tokens":tokens,"active":app.isActive]
+    return ["ok":true,"pid":Int(pid),"window_id":wid,"title":title,"bounds":bounds,"width":cg.width,"height":cg.height,"window_recovery_requested":raise,
+            "sha256":SHA256.hash(data:cg.dataProvider!.data! as Data).map{String(format:"%02x",$0)}.joined(),"observed_at":capturedAt,"tokens":tokens,
+            "active":NSWorkspace.shared.frontmostApplication?.processIdentifier == pid]
 }
 func clickToken(_ shot:[String:Any],_ text:String) throws {
     guard let pid=shot["pid"] as? Int,let bounds=shot["bounds"] as? [String:Double],let tokens=shot["tokens"] as? [[String:Any]],let observed=shot["observed_at"] as? Double,Date().timeIntervalSince1970-observed<2 else {try fail("Stale observation")}
     let hits=tokens.filter{($0["text"] as? String)==text && ($0["confidence"] as? Double ?? 0)>=0.5}
-    guard hits.count==1,let b=hits.first,let x=b["x"] as? Double,let y=b["y"] as? Double,let w=b["width"] as? Double,let h=b["height"] as? Double else {try fail("Unique exact button text not recognized: " + String(describing: tokens.filter{ ($0["text"] as? String ?? "").contains("打印") }))}
+    guard hits.count==1,let b=hits.first,let x=b["x"] as? Double,let y=b["y"] as? Double,let w=b["width"] as? Double,let h=b["height"] as? Double else {try fail("Unique exact button text not recognized: \(text)", code:"button_not_recognized", stage:"before_input")}
     RunLoop.current.run(until:Date(timeIntervalSinceNow:0.01))
-    guard NSWorkspace.shared.frontmostApplication?.processIdentifier==pid_t(pid) else {try fail("Studio lost foreground")}
+    guard NSWorkspace.shared.frontmostApplication?.processIdentifier==pid_t(pid) else {try fail("Studio lost foreground", code:"foreground_lost", stage:"before_input")}
+    guard let title=shot["title"] as? String, let windowID=shot["window_id"] as? Int else {try fail("Missing observed window identity")}
+    let current=visibleWindows(pid_t(pid), title)
+    guard current.count==1, current[0][kCGWindowNumber as String] as? Int == windowID,
+          let currentBounds=current[0][kCGWindowBounds as String] as? [String:Double], currentBounds == bounds else {
+        try fail("Studio window changed after capture; no button clicked", code:"window_changed", stage:"before_input")
+    }
     let p=CGPoint(x:(bounds["X"] ?? 0)+(x+w/2)*(bounds["Width"] ?? 0),y:(bounds["Y"] ?? 0)+(y+h/2)*(bounds["Height"] ?? 0))
+    // A frontmost application may still have a menu, another dialog, or an OS
+    // overlay covering the point. Verify the actual accessible hit target.
+    var hit: AXUIElement?
+    let hitResult=AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(p.x), Float(p.y), &hit)
+    var hitPID: pid_t = 0
+    guard hitResult == .success, let hit=hit, AXUIElementGetPid(hit, &hitPID) == .success, hitPID == pid_t(pid) else {
+        try fail("Observed button is obscured or belongs to another window; no button clicked", code:"input_target_obscured", stage:"before_input")
+    }
+    let hitWindow: AXUIElement?
+    if attr(hit, kAXRoleAttribute) as? String == kAXWindowRole {
+        // Custom-drawn wxWidgets controls may expose the containing window.
+        hitWindow = hit
+    } else if let owner = attr(hit, kAXWindowAttribute), CFGetTypeID(owner) == AXUIElementGetTypeID() {
+        hitWindow = (owner as! AXUIElement)
+    } else {hitWindow = nil}
+    guard let hitWindow=hitWindow, attr(hitWindow, kAXTitleAttribute) as? String == title else {
+        try fail("Input target's containing window cannot be verified; no button clicked", code:"input_window_unverified", stage:"before_input")
+    }
     guard let down=CGEvent(mouseEventSource:nil,mouseType:.leftMouseDown,mouseCursorPosition:p,mouseButton:.left),let up=CGEvent(mouseEventSource:nil,mouseType:.leftMouseUp,mouseCursorPosition:p,mouseButton:.left) else {try fail("Cannot construct mouse event")}
     down.post(tap:.cghidEventTap);up.post(tap:.cghidEventTap)
 }
 func printerRefreshToken(_ pid: pid_t, _ shot: [String:Any]) throws -> [String:Any] {
-    let app = AXUIElementCreateApplication(pid)
-    let dialogs = (attr(app, kAXWindowsAttribute) as? [AXUIElement] ?? []).filter {
+    let dialogs = try accessibleWindows(pid).filter {
         (attr($0, kAXTitleAttribute) as? String) == "发送打印任务"
     }
     guard dialogs.count == 1, let bounds = shot["bounds"] as? [String:Double],
@@ -180,10 +263,27 @@ do {
         let accessibility=AXIsProcessTrustedWithOptions(options)
         let screen=CGPreflightScreenCaptureAccess() ? true : CGRequestScreenCaptureAccess()
         emit(["ok":true,"requested":true,"printed":false,"accessibility":accessibility,"screen_capture":screen,"helper_bundle_id":Bundle.main.bundleIdentifier ?? "unbundled"])
-    case "snapshot", "inspect-panel", "open-panel":
+    case "snapshot", "recover-window", "inspect-panel", "open-panel":
         guard args.count==3,let pid=Int32(args[1]) else {try fail("Expected mode pid exact-window-title")}
         let shot=try snapshot(pid,args[2],raise:mode != "snapshot")
-        if mode=="open-panel" { guard args[2].hasSuffix(".gcode"),!args[2].contains("*") else {try fail("Only exact sliced job preview may open send panel")};try clickToken(shot,"打印单盘");emit(["ok":true,"opened_panel":true,"sent":false]) }
+        if mode=="open-panel" {
+            guard args[2].hasSuffix(".gcode"),!args[2].contains("*") else {try fail("Only exact sliced job preview may open send panel")}
+            try clickToken(shot,"打印单盘")
+            let deadline = Date(timeIntervalSinceNow:5)
+            var opened = false
+            repeat {
+                RunLoop.current.run(until:Date(timeIntervalSinceNow:0.1))
+                // Rendering can briefly make AX unavailable. Poll observations
+                // within this deadline; never repeat the preparation click.
+                if let windows = try? accessibleWindows(pid) {
+                    let panels=windows.filter {attr($0,kAXTitleAttribute) as? String == "发送打印任务"}
+                    if panels.count > 1 {try fail("Multiple send dialogs appeared", code:"panel_ambiguous", stage:"after_open_panel")}
+                    if panels.count == 1 {opened=true;break}
+                }
+            } while Date() < deadline
+            guard opened else {try fail("Preparation click returned but the send dialog was not observed; inspect before retrying", code:"panel_not_observed", stage:"after_open_panel")}
+            emit(["ok":true,"opened_panel":true,"sent":false,"title":"发送打印任务"])
+        }
         else {emit(shot)}
     case "refresh-printer":
         guard args.count == 4, let pid = Int32(args[1]), args[2].hasSuffix(".gcode"),
@@ -265,4 +365,9 @@ do {
         emit(["ok":true,"executed":true,"command_sent":true,"clicked_send_once":true,"job_id":jid])
     default:try fail("Unsupported command")
     }
-} catch {emit(["ok":false,"error":(error as? BridgeError)?.message ?? String(describing:error)]);exit(1)}
+} catch {
+    let failure=error as? BridgeError
+    emit(["ok":false,"error":failure?.message ?? String(describing:error),
+          "code":failure?.code ?? "helper_failed", "stage":failure?.stage ?? "helper"])
+    exit(1)
+}

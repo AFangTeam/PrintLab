@@ -180,7 +180,11 @@ def parser():
     so.add_argument('project')
     so.add_argument('job')
     bridge = sub.add_parser('studio-bridge', help='Build or inspect the official Studio helper')
-    bridge.add_argument('action', choices=['build', 'capability', 'permissions'])
+    bridge.add_argument('action', choices=['build', 'capability', 'permissions', 'windows', 'inspect', 'recover', 'open-panel', 'open-file'])
+    bridge.add_argument('--studio-pid', type=int, help='Exact running Studio process ID from windows')
+    bridge.add_argument('--window-title', help='Exact window title from windows; never a fuzzy match')
+    bridge.add_argument('--file', help='Explicit sliced .gcode.3mf to open in a separate Studio instance')
+    bridge.add_argument('--sha256', help='Expected SHA-256 of the slice to open')
     r = sub.add_parser("reconcile")
     r.add_argument("project")
     r.add_argument("job")
@@ -373,6 +377,16 @@ def main(argv=None):
                 result = {'app_path': str(studio_bridge.build_helper()), 'printed': False}
             elif a.action == 'permissions':
                 result = studio_bridge.setup_permissions()
+            elif a.action == 'windows':
+                result = studio_bridge.window_status()
+            elif a.action in {'inspect', 'recover'}:
+                result = studio_bridge.observe_window(a.studio_pid, a.window_title, recover=a.action == 'recover')
+            elif a.action == 'open-panel':
+                result = studio_bridge.open_preview_panel(a.studio_pid, a.window_title)
+            elif a.action == 'open-file':
+                if not a.file:
+                    raise core.WorkflowError('open-file requires --file and --sha256')
+                result = studio_bridge.open_preview_file(a.file, a.sha256)
             else:
                 result = studio_bridge.capability()
         elif a.command == "reconcile":
@@ -437,7 +451,11 @@ def main(argv=None):
             return 2
         return 2 if a.command == "native-inspect" and result.get("ok") is False else 0
     except (core.WorkflowError, OSError, ValueError, httpx.HTTPError) as exc:
-        print(json.dumps({"error": str(exc)}, ensure_ascii=False), file=sys.stderr)
+        failure = {"error": str(exc)}
+        for field in ('code', 'stage'):
+            if isinstance(getattr(exc, field, None), str):
+                failure[field] = getattr(exc, field)
+        print(json.dumps(failure, ensure_ascii=False), file=sys.stderr)
         return 2
 
 
