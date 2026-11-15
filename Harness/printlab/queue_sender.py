@@ -1,5 +1,5 @@
 """Workbench access to the existing single-dispatch Bambuddy queue adapter."""
-from . import bambuddy, core, machine_profiles
+from . import bambuddy, core, dispatch_plan
 
 
 def capability(report):
@@ -8,8 +8,8 @@ def capability(report):
     if not pid or not jid:
         return {'available': False, 'kind': 'bambuddy_queue', 'message': '请选择已绑定具体设备的待打印任务'}
     job = core.read_json(core.job_path(pid, jid) / 'job.json')
-    if not machine_profiles.single_nozzle_model(job.get('sliced_printer_model')):
-        blockers.append('当前队列按钮适配 A1、A1 mini、P1S 和 X1 Carbon 的 AMS 路线')
+    blockers.extend(dispatch_plan.queue_adapter_issues(
+        job.get('sliced_printer_model'), job.get('mapping', {}).get('use_ams')))
     if job.get('mapping', {}).get('transport') != 'bambuddy_queue':
         blockers.append('任务尚未明确绑定 Bambuddy 队列通道')
     if report.get('device', {}).get('state') != 'IDLE':

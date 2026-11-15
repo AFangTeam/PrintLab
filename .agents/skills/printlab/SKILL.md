@@ -14,7 +14,7 @@ license: PolyForm Noncommercial 1.0.0; see the PrintLab repository LICENSE.md an
 - 自动建队与首次访谈：用户的安装请求包含建立角色时，按 docs/ONBOARDING.md 执行宿主工具探测、已有入口查询、预留与真实创建、首条介绍读回。新角色使用 Mike 和 Sarah，已有 Sara 接续。主 Agent 读取设备、已装材料和库存，只问真实缺项。
 - 开始设计或接续：读取 Context/profile.md、Context/workflow.md、设备档案；运行当前 CLI 的 --help 和 context，按 project.json 的 latest_session 继续原项目。新作品先了解用途、尺寸、设备、材料和验收标准。生图前用 constraints capture 保存实际来源，进入 CAD/切片前从 context 核对设备材料或需求变化。
 - 外形、CAD、切片：按 Context/image-to-print.md 和 Context/cad-master-design.md 继承已选方案；真实源模型导出预览，关键接口与实测独立核对。依据当前机器比较打印方向、材料、支撑、分盘及完整工时。
-- 打印：先读 docs/PRINTING.md。只通过工作台/CLI 的统一批准和发送入口，绑定具体模型版本、切片文件、设备、材料与有效清板确认。安装或设计不授权打印。结果未知先对账，不自动重发；不借第三方插件绕过 PrintLab 检查。
+- 打印：先读 docs/PRINTING.md。配置前先运行 `printlab dispatch-plan`，传入已知机型、供料和用户选择。默认先评估 Bambuddy，并推荐所需控制权限，说明网络模式对云功能的影响。用户拒绝、本版未适配或发送前检查失败时，准备官方 Studio 后备；系统权限不足时建议授权，仍不可用则交接人工发送。上传、排队或发送结果未知时先对账，禁止换通道重发。只通过工作台/CLI 的统一批准和发送入口，绑定具体模型版本、切片文件、设备、材料与有效清板确认。安装或设计不授权打印。结果未知先对账，不自动重发；不借第三方插件绕过 PrintLab 检查。
 - Studio 窗口控制故障：遇到 `noWindowsAvailable`、`timeoutReached` 或 `Computer Use is not active`，读取 docs/STUDIO_COMPUTER_USE.md。一次工具调用只做一步，最多一轮轻量恢复；优先复用切片或已验证的官方 CLI。Mac 可用通用 studio-bridge 窗口命令接续至发送准备页；无 AMS 的 A1 不改用 X2D 最终发送或 AMS 队列。自动发送不支持时，明确交接使用者在官方 Studio 中独立操作并记录来源，不伪造 PrintLab 回执。
 - 共同记录：使用 workspace 命令的哈希检查追加偏好、事实与经验，冲突后重读。用户确认拥有的其他耗材通过 material-intake 写入 Bambuddy，超时后使用相同请求标识对账。
 - 交接：用 CLI handoff 保存完成项、当前版本、证据、未知项与下一步，再通过 context 读回。设备已结束不等于实物合格。

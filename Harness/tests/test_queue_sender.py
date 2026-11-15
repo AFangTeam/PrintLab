@@ -110,3 +110,55 @@ def test_queue_readiness_requires_current_machine_storage_and_credentials(queue_
     core.write_json(core.ROOT / 'Runtime/private/bambuddy.json', {})
     assert not workbench.check('P001', 'Jone')['ready']
     assert client.posts == []
+
+
+@pytest.mark.parametrize('field,value', [
+    ('id', 888), ('library_file_id', 888), ('archive_id', 888), ('printer_id', 888), ('plate_id', 2),
+    ('manual_start', False), ('status', 'printing'), ('use_ams', False),
+    ('ams_mapping', [3]), ('skip_filament_check', True), ('gcode_injection', True),
+    ('confirm_outcome', False), ('use_ams', None), ('use_ams', 1),
+])
+def test_queue_mutation_cannot_start_or_erase_receipt(queue_setup, field, value):
+    client, base, directory = queue_setup
+    get = client.get
+    def altered(path):
+        result = get(path)
+        if path == 'queue/9':
+            result[field] = value
+        return result
+    client.get = altered
+    operation = start_once()
+    assert operation['state'] == 'unknown'
+    assert client.posts == ['library/files', 'queue/']
+    assert (directory / 'dispatch.json').exists()
+    assert not workbench.check('P001', 'Jone')['ready']
+
+
+@pytest.mark.parametrize('field,value', [
+    ('tray_type', 'PLA'), ('tray_color', 'FFFFFFFF'), ('tray_sub_brands', 'PETG HF'),
+    ('tray_info_idx', None), ('tray_id_name', 'changed'),
+])
+def test_material_changed_during_upload_is_rechecked_before_start(queue_setup, field, value):
+    client, base, directory = queue_setup
+    post = client.post
+    def changed(path, **kwargs):
+        result = post(path, **kwargs)
+        if path == 'queue/':
+            base.live['ams'][0]['tray'][0][field] = value
+        return result
+    client.post = changed
+    operation = start_once()
+    assert operation['state'] == 'unknown'
+    assert client.posts == ['library/files', 'queue/']
+    assert 'start_requested_at' not in core.read_json(directory / 'dispatch.json')
+
+
+def test_external_queue_never_advertises_sender_available(queue_setup):
+    _, _, directory = queue_setup
+    job = core.read_json(directory / 'job.json')
+    job['mapping']['use_ams'] = False
+    core.write_json(directory / 'job.json', job)
+    result = queue_sender.capability({'project_id': 'P001', 'job_id': 'Jone',
+        'device': {'state': 'IDLE'}, 'transport': {'sdcard': True}})
+    assert not result['available']
+    assert any('外挂' in reason for reason in result['blockers'])
