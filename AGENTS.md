@@ -37,7 +37,7 @@ Sarah 负责设备、材料、故障和配件。Mike 负责工作台、工具和
 
 每次最终制作检查质量、可靠性、打印总时间、支撑、材料切换和后处理。记录实际切片比较，模板见 `Templates/Project/Review/x2d-final-review.md`。
 
-打印授权绑定具体模型版本、切片文件、设备、材料与当次清板事实。使用 `printlab approve / submit / reconcile` 的同一任务记录。首次设置、建模、切片、测试均保持无设备动作。准备发送时先核对已有任务，结果不明先对账，避免重复发送。官方 Studio 路线见 `Context/official-studio-dispatch.md`。
+打印授权绑定具体模型版本、切片文件、设备、材料与当次清板事实。使用 `printlab approve / submit / reconcile` 的同一任务记录。首次设置、建模、切片、测试均保持无设备动作。准备发送时先核对已有任务，结果不明先对账，避免重复发送。默认先评估 Bambuddy 发送，并建议授予具体所需权限。先说明 LAN Only / Developer Mode 对云功能的影响，由使用者选择。用户拒绝、适配不支持或发送前检查失败时，按 `docs/PRINTING.md` 转官方 Studio 后备；Studio 控制仍失败则交接人工发送。上传、排队或发送结果未知时先对账，禁止换通道重发。官方 Studio 路线见 `Context/official-studio-dispatch.md`。
 
 设备完成后进入实物检查。使用者确认配合、外观、强度或使用体验后，再登记验收结果。
 
