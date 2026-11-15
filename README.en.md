@@ -6,13 +6,25 @@ Turn an idea into something you can hold.
 
 PrintLab is the 3D-printing workbench and collaboration workflow AFang (Eric) uses in his E41 video. It is designed for **Mac / Windows + Codex + Bambu Lab printers**. Describe what you want to make, then work with Codex on the design, CAD, slicing comparisons, materials, print records, and physical feedback in one workspace.
 
+## Watch PrintLab in use
+
+[![PrintLab demonstration by AFang EricFang: ChatGPT meets a 3D printer (Chinese audio)](https://i.ytimg.com/vi/q7G8J5Tz0aQ/hqdefault.jpg)](https://www.youtube.com/watch?v=q7G8J5Tz0aQ)
+
+[Watch on YouTube](https://www.youtube.com/watch?v=q7G8J5Tz0aQ) · [Watch on Bilibili](https://www.bilibili.com/video/BV1r1W26hEHg/)
+
+By AFang EricFang. Video language: Chinese. For current dispatch capabilities, use this README and the printing guide.
+
 > **Acknowledgments and project roles:** Thank you to [Text-to-CAD](https://github.com/earthtojake/text-to-cad) for CAD modeling and viewing tools, [Bambuddy](https://github.com/maziggy/bambuddy) for printer status, filament and print-record management, and [Bambu Studio](https://github.com/bambulab/BambuStudio) for slicing and official print submission. PrintLab contributes the workbench, collaboration workflow and adapters. These third-party tools are maintained by their respective authors, installed independently from their original projects, and governed by their own licenses. See [third-party sources and licenses](docs/DEPENDENCIES.md).
+
+## History and collection coverage
+
+PrintLab shows print history already captured by Bambuddy and locally maintained inspiration collections. Importing older Bambu Cloud history and MakerWorld account collections is outside the current scope. Preserve existing Handy and cloud needs when choosing a connection mode. Missing archive thumbnails can be recovered from Mac Studio caches or explicitly linked local PNG/3MF files using `history-recover`. [Sync limits](docs/SYNC_TROUBLESHOOTING.md) · [Preview recovery](docs/PREVIEW_RECOVERY.md)
 
 ## Get started
 
 Give the repository URL and this prompt to Codex or another agent with local terminal and filesystem access.
 
-> Install https://github.com/AFangTeam/PrintLab on this computer. Read README.md, AGENTS.md, and docs/AGENT_START.md. Create a persistent workspace, start the workbench, and run the onboarding verification. Create Sara, the 3D-printing advisor, and Mike, the workflow designer, as chats sharing this workspace, and record their actual setup status. Create a task-group chat when I choose my first object. Install third-party tools independently from their original projects. Tell me the specific actions needed for device information, login, or system permissions. Report the workspace path, workbench URL, role entry points, verified results, and next steps.
+> Install https://github.com/AFangTeam/PrintLab on this computer. Read README.md, AGENTS.md, and docs/AGENT_START.md. Create a persistent workspace, start the workbench, and run the onboarding verification. Create Sarah, the 3D-printing advisor, and Mike, the workflow designer, as chats sharing this workspace, and record their actual setup status. Create a task-group chat when I choose my first object. Install third-party tools independently from their original projects. Tell me the specific actions needed for device information, login, or system permissions. Report the workspace path, workbench URL, role entry points, verified results, and next steps.
 
 The interaction guide explains what happens in chat, what happens in the web workbench, and how roles exchange project context. The agent guide provides executable setup steps and completion checks. Both guides currently use Simplified Chinese. [User interaction guide](docs/GETTING_STARTED.md) · [Agent onboarding guide](docs/AGENT_START.md)
 
@@ -50,7 +62,7 @@ The Windows guide covers tool paths, verification, and official Studio handoff. 
 
 ## Three collaboration roles
 
-- **Sara, 3D-printing advisor** helps track equipment, filament, common problems, and parts. Shopping lists span projects. Adding products to a shopping cart uses Codex browser capabilities after the user authorizes it.
+- **Sarah, 3D-printing advisor** helps track equipment, filament, common problems, and parts. Shopping lists span projects. Adding products to a shopping cart uses Codex browser capabilities after the user authorizes it.
 - **Mike, workflow designer** maintains tool connections, the workbench, and shared procedures. Mike handles installation, versions, interfaces, and workflow problems.
 - **Task group, named after the object** gives each object its own chat and project. Requirements, selected references, source models, slices, and feedback stay together for later sessions.
 
@@ -78,7 +90,9 @@ Mac requires macOS 14+, with Apple Silicon recommended. Windows provides native 
 
 The Mac automated sending helper targets **X2D, Chinese Bambu Studio 02.08.02.61, 0.4 mm, one main AMS filament, the left main nozzle, and one Textured PEI plate**. Other printers, software versions, and multi-material routes need verification in the user's environment. [Printing and compatibility](docs/PRINTING.md)
 
-Windows users hand prepared files to official Bambu Studio. The workbench's automatic sending helper is currently macOS-only. Setup independently downloads the pinned public file inspector on both systems, and `doctor` exercises it with a disposable file. Complete the printer and material questionnaire before creating a design. [First-run questionnaire](docs/FIRST_RUN.md) · [Connections](docs/CONNECTIONS.md)
+v0.4.3 adds the offline `dispatch-plan` command to assess the model and feeding route before recommending permissions. Supported A1, A1 mini, P1S and X1 Carbon AMS combinations prefer the Bambuddy queue on Mac or Windows; actual device acceptance still requires on-site validation. Declined permissions, cloud-preserving choices or unsupported combinations use official Studio with manual handoff if automation is unavailable. **PrintLab A1 external-spool automatic dispatch is not yet adapted.** Unknown send outcomes require reconciliation before any route change.
+
+The dedicated Studio GUI helper is macOS-only. Windows users can use an eligible Bambuddy queue route or hand prepared files to official Studio. Setup independently downloads the pinned public file inspector on both systems, and `doctor` exercises it with a disposable file. Complete the printer and material questionnaire before creating a design. [First-run questionnaire](docs/FIRST_RUN.md) · [Connections](docs/CONNECTIONS.md)
 
 The repository includes a PrintLab Agent Skill at `.agents/skills/printlab/SKILL.md`. Open this workspace in a compatible agent and verify that it discovers the skill. Text-to-CAD is installed separately, with pinned-version commands and a modeling smoke test in the CAD guide. [CAD setup](docs/CAD_SETUP.md)
 

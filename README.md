@@ -6,6 +6,14 @@
 
 PrintLab 是阿方（Eric）在 E41 视频中使用的 3D 打印工作台与协作流程，面向 **Mac / Windows + Codex + 拓竹打印机**。你描述需求，Codex 协助选外形、建立模型、比较切片，再把版本、材料、打印记录和实物反馈保存在同一个工作空间。
 
+## 看视频了解 PrintLab
+
+[![当 ChatGPT 接上 3D 打印机——阿方的 PrintLab 演示（中文）](https://i.ytimg.com/vi/q7G8J5Tz0aQ/hqdefault.jpg)](https://www.bilibili.com/video/BV1r1W26hEHg/)
+
+[在 B 站观看](https://www.bilibili.com/video/BV1r1W26hEHg/) · [在 YouTube 观看](https://www.youtube.com/watch?v=q7G8J5Tz0aQ)
+
+阿方 EricFang：《当 ChatGPT 接上 3D 打印机……》。视频语言：中文。当前发送支持范围以本页和打印指南为准。
+
 > **致谢与项目分工**：感谢 [Text-to-CAD](https://github.com/earthtojake/text-to-cad) 提供 CAD 建模与查看工具、[Bambuddy](https://github.com/maziggy/bambuddy) 提供打印机状态、耗材与打印记录管理，以及 [Bambu Studio](https://github.com/bambulab/BambuStudio) 提供切片与官方发送能力。PrintLab 的原创部分是工作台、协作流程和适配接口；这些第三方工具由各自作者维护，从原项目独立安装并遵循各自许可。完整来源与许可见 [第三方说明](docs/DEPENDENCIES.md)。
 
 ## 历史与收藏的同步范围
@@ -81,6 +89,8 @@ Windows 的工具路径、验证命令和官方 Studio 交接见 [Windows 指南
 新外形默认先选单张方案，再从同一方案的四套三视图中选一套。小改动按影响范围处理，已有决定接续使用。Text-to-CAD 提供建模和查看能力，尺寸、接口和实际装配仍逐项检查。完整步骤在 [工作流](Context/workflow.md)。
 
 ## 支持范围
+
+v0.4.3 新增只读 `dispatch-plan`，先判断机型和供料方式，再建议所需权限。已适配的 A1、A1 mini、P1S、X1 Carbon AMS 组合优先评估 Bambuddy 队列，Mac 与 Windows 共用该通道；真实设备接收仍需现场验证。用户拒绝权限、需要保留云功能或本版未适配时，走官方 Studio 后备，必要时交接人工发送。**A1 无 AMS / Ext 的 PrintLab 自动发送尚未适配。** 发送结果未知时先对账，不能换通道重发。
 
 Mac 使用 macOS 14+，推荐 Apple Silicon。Windows 提供原生 PowerShell 安装、命令行与浏览器工作台。通用工作台可独立启动，设备状态与历史依赖单独安装的 Bambuddy。Mac 自动发送助手对应 **X2D、中文 Bambu Studio 02.08.02.61、0.4 mm、单主料 AMS、左主喷嘴、纹理 PEI 单盘**。其他机型、软件版本和多材料路线需要 Codex 按现场情况核对，详见 [兼容性与打印](docs/PRINTING.md)。
 
