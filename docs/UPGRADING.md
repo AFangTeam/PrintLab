@@ -37,3 +37,9 @@ Mac 运行 `bash scripts/setup.sh`。Windows 运行 `powershell -NoProfile -Exec
 - 设备读不到时依次核对 Bambuddy 页面、实际服务 URL、只读 key、打印机 ID 和网络模式。接口连接成功后，再核对实时数据时间与材料。
 
 提交问题时使用仓库问题表单，附操作系统、Release、脱敏错误和复现步骤。凭据文件保留在本机。
+
+## v0.4.3
+
+本版先判断发送路线，再建议必要权限。新增 `dispatch-plan` 只读命令，并加强 Bambuddy 队列启动前的文件、盘号和材料检查。现有批准任务不自动换通道。
+
+A1 无 AMS / Ext 仍使用 Studio 后备；本版没有新增这一组合的自动发送。已经在 Studio 成功切片的用户可直接继续当前打印，无需为此先升级。希望 Codex 接续新的路线判断和窗口助手时，再按本页升级。只下载 Release ZIP 不会自动升级已有工作空间。

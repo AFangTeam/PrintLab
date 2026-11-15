@@ -190,6 +190,11 @@ def parser():
     r.add_argument("job")
     sub.add_parser("status")
     sub.add_parser("materials", help="Read shared live filament quantities; never resets the full-spool baseline")
+    route = sub.add_parser('dispatch-plan', help='Read-only route advice before configuring permissions; never sends')
+    route.add_argument('--model', help='Actual printer model; defaults to saved device card')
+    route.add_argument('--feeding', choices=['ams', 'external', 'unknown'], default='unknown')
+    route.add_argument('--bambuddy-permission', choices=['unknown', 'granted', 'declined'], default='unknown')
+    route.add_argument('--keep-cloud', action='store_true', help='User explicitly wants to preserve cloud functions')
     sub.add_parser("doctor")
     r = sub.add_parser("review")
     r.add_argument("project")
@@ -433,6 +438,10 @@ def main(argv=None):
                 result = shop.supplier(a.item, a.status, a.url, a.evidence, a.expect)
             else:
                 result = shop.fulfill(a.project, a.note, a.expect)
+        elif a.command == 'dispatch-plan':
+            from . import dispatch_plan
+            result = dispatch_plan.plan(model=a.model, feeding=a.feeding,
+                permission=a.bambuddy_permission, keep_cloud=a.keep_cloud)
         elif a.command == 'history-recover':
             from . import preview_recovery
             result = preview_recovery.recover(printer_id=a.printer_id, cache_dir=a.cache_dir,

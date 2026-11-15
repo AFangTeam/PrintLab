@@ -430,14 +430,23 @@ def submit(pid, jid, execute=False, client_factory=None):
                 receipt.update(state="staged", queue_id=item["id"])
                 core.write_json(jd / "dispatch.json", receipt)
                 staged = client.get(f"queue/{item['id']}")
-                if staged.get("manual_start") is not True or staged.get("status") != "pending" or staged.get("ams_mapping") != job["mapping"]["ams_mapping"] or staged.get("printer_id") != job["printer_id"]:
+                expected = {"id": item["id"], "library_file_id": uploaded["id"],
+                    "printer_id": job["printer_id"], "plate_id": job["plate"],
+                    "manual_start": True, "status": "pending", "use_ams": True,
+                    "ams_mapping": job["mapping"]["ams_mapping"],
+                    "skip_filament_check": False, "gcode_injection": False, "confirm_outcome": True}
+                # Check the actual file and plate as well as the target and feeding mode.
+                # Missing fields fail closed; the pinned upstream response includes these.
+                if any(type(staged.get(key)) is not type(value) or staged.get(key) != value
+                       for key, value in expected.items()):
                     raise core.WorkflowError("Staged queue readback differs from approved task")
                 queue = client.get("queue/")
                 if any(q.get("id") != item["id"] and q.get("status") in {"pending", "printing"} for q in queue):
                     raise core.WorkflowError("Another task entered the queue while staging")
                 verify_machine_identity(client, job)
-                validate_ready(client.get(f"printers/{job['printer_id']}/status"), job["mapping"],
-                               printer_model=job.get('sliced_printer_model'))
+                current_status = client.get(f"printers/{job['printer_id']}/status")
+                validate_ready(current_status, job["mapping"], printer_model=job.get('sliced_printer_model'))
+                validate_slice_route(jd, job, current_status)
                 if core.job_fingerprint(p, jd, job) != approval["fingerprint"]:
                     raise core.WorkflowError("Approved files changed while staging")
                 receipt.update(state="start_requested", start_requested_at=core.now())
