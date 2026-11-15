@@ -113,7 +113,7 @@ def test_queue_readiness_requires_current_machine_storage_and_credentials(queue_
 
 
 @pytest.mark.parametrize('field,value', [
-    ('id', 888), ('library_file_id', 888), ('printer_id', 888), ('plate_id', 2),
+    ('id', 888), ('library_file_id', 888), ('archive_id', 888), ('printer_id', 888), ('plate_id', 2),
     ('manual_start', False), ('status', 'printing'), ('use_ams', False),
     ('ams_mapping', [3]), ('skip_filament_check', True), ('gcode_injection', True),
     ('confirm_outcome', False), ('use_ams', None), ('use_ams', 1),

@@ -431,7 +431,7 @@ def submit(pid, jid, execute=False, client_factory=None):
                 receipt.update(state="staged", queue_id=item["id"])
                 core.write_json(jd / "dispatch.json", receipt)
                 staged = client.get(f"queue/{item['id']}")
-                expected = {"id": item["id"], "library_file_id": uploaded["id"],
+                expected = {"id": item["id"], "library_file_id": uploaded["id"], "archive_id": None,
                     "printer_id": job["printer_id"], "plate_id": job["plate"],
                     "manual_start": True, "status": "pending", "use_ams": True,
                     "ams_mapping": job["mapping"]["ams_mapping"],
