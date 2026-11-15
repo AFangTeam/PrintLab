@@ -6,6 +6,8 @@
 
 PrintLab 是阿方（Eric）在 E41 视频中使用的 3D 打印工作台与协作流程，面向 **Mac / Windows + Codex + 拓竹打印机**。你描述需求，Codex 协助选外形、建立模型、比较切片，再把版本、材料、打印记录和实物反馈保存在同一个工作空间。
 
+> **致谢与项目分工**：感谢 [Text-to-CAD](https://github.com/earthtojake/text-to-cad) 提供 CAD 建模与查看工具、[Bambuddy](https://github.com/maziggy/bambuddy) 提供打印机状态、耗材与打印记录管理，以及 [Bambu Studio](https://github.com/bambulab/BambuStudio) 提供切片与官方发送能力。PrintLab 的原创部分是工作台、协作流程和适配接口；这些第三方工具由各自作者维护，从原项目独立安装并遵循各自许可。完整来源与许可见 [第三方说明](docs/DEPENDENCIES.md)。
+
 ## 历史与收藏的同步范围
 
 当前发布版汇总 Bambuddy 已捕获的打印记录，并展示本地维护的灵感收藏。安装前的 Bambu Cloud 历史和 MakerWorld 账号收藏导入已排除在本轮开发范围外。需要保留 Handy、云打印和账号收藏的使用者，应在安装时明确这些需求，按同步排查核对已有功能。

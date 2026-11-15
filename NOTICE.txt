@@ -7,3 +7,14 @@ license terms (or their URL) and both Required Notice lines above.
 
 Third-party packages and programs are downloaded independently from their
 original authors. They retain their respective licenses and notices.
+
+Acknowledgments:
+- Text-to-CAD: https://github.com/earthtojake/text-to-cad
+  CAD modeling and viewing tools; MIT license.
+- Bambuddy: https://github.com/maziggy/bambuddy
+  Printer status, filament and print-record management; AGPL-3.0 license.
+- Bambu Studio: https://github.com/bambulab/BambuStudio
+  Slicing and official print submission.
+
+See docs/DEPENDENCIES.md for additional projects, sources and license guidance.
+These acknowledgments do not imply endorsement by the upstream authors.

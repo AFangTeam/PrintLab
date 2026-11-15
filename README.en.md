@@ -6,6 +6,8 @@ Turn an idea into something you can hold.
 
 PrintLab is the 3D-printing workbench and collaboration workflow AFang (Eric) uses in his E41 video. It is designed for **Mac / Windows + Codex + Bambu Lab printers**. Describe what you want to make, then work with Codex on the design, CAD, slicing comparisons, materials, print records, and physical feedback in one workspace.
 
+> **Acknowledgments and project roles:** Thank you to [Text-to-CAD](https://github.com/earthtojake/text-to-cad) for CAD modeling and viewing tools, [Bambuddy](https://github.com/maziggy/bambuddy) for printer status, filament and print-record management, and [Bambu Studio](https://github.com/bambulab/BambuStudio) for slicing and official print submission. PrintLab contributes the workbench, collaboration workflow and adapters. These third-party tools are maintained by their respective authors, installed independently from their original projects, and governed by their own licenses. See [third-party sources and licenses](docs/DEPENDENCIES.md).
+
 ## Get started
 
 Give the repository URL and this prompt to Codex or another agent with local terminal and filesystem access.

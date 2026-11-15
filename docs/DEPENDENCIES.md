@@ -1,6 +1,8 @@
-# 第三方工具与独立安装
+# 致谢、第三方工具与独立安装
 
 PrintLab 发布包保留原创工作台、流程、适配接口与项目模板。下面的程序、插件、源码、权重和技能由使用者从原作者渠道下载，各自遵守原许可。
+
+感谢以下项目的作者与贡献者。它们为这套流程提供了建模、设备管理、切片等能力；PrintLab 的原创贡献是工作台、协作流程与适配接口。下列链接用于标明来源，不表示上游作者对 PrintLab 的背书或合作关系。
 
 | 项目 | 在流程中的作用 | 获取与版本说明 |
 | --- | --- | --- |
@@ -15,7 +17,9 @@ PrintLab 发布包保留原创工作台、流程、适配接口与项目模板�
 
 ## 许可归属
 
-核对过的上游许可包括 Text-to-CAD 的 MIT、Bambuddy 的 AGPL-3.0 和 bambu-printer-mcp 的 GPL-2.0。使用者应以自己下载版本的 LICENSE 为准。上游的许可与署名继续适用，PrintLab 的非商用许可只覆盖 PrintLab 原创部分。
+核对过的上游许可包括 [Text-to-CAD 的 MIT](https://github.com/earthtojake/text-to-cad/blob/main/LICENSE)、[Bambuddy 的 AGPL-3.0](https://github.com/maziggy/bambuddy/blob/main/LICENSE) 和 bambu-printer-mcp 的 GPL-2.0。使用者应以自己下载版本的 LICENSE 为准。上游的许可与署名继续适用，PrintLab 的非商用许可只覆盖 PrintLab 原创部分。
+
+致谢和来源链接不能替代许可证义务。复制、修改或再分发第三方代码、技能及其他资产前，需要按实际版本核对许可，保留所需版权及许可文本，并履行适用的源码提供义务；独立安装本身并不自动证明所有使用方式都合规。PrintLab 的非商用条件不能覆盖或限制第三方项目自身许可授予的权利。
 
 旧原生客户端通过进程内载入 `bambu-printer-mcp` 内部模块工作。首版发布包移除了该客户端、上游补丁和相关运行环境，保留本项目的历史任务读回与独立检查逻辑。首版 `bambu_native` 发送返回明确的不可用原因，官方 Studio 工作流在 `PRINTING.md` 中说明。
 
