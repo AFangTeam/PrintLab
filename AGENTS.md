@@ -1,52 +1,54 @@
-# PrintLab · Codex 工作入口
+# PrintLab · Agent workspace guide
 
-本仓库面向 Mac / Windows、Codex 与拓竹打印机。执行用户当前要求，先核对事实和项目状态，再选最简单可行的方法。
+PrintLab targets Mac / Windows, Codex and Bambu Lab printers. Follow the user's current request. Verify the project state and facts, then choose the simplest viable method.
 
-## 首次安装
+English is the primary language for maintained project instructions. Communicate in the user's preferred language; preserve original user statements, device UI labels and historical evidence. See `docs/LANGUAGE.md` for remaining Chinese content and migration boundaries.
 
-先读 `docs/AGENT_START.md`，按其中步骤完成接手、安装、验证与角色建立。具体安装见 `docs/SETUP.md`，第三方来源见 `docs/DEPENDENCIES.md`，设备适配见 `docs/PRINTING.md`。Agent 在使用者授权范围内从原作者渠道独立下载和安装第三方工具，记录版本与验证结果。安装程序会从 PyPI/npm 获取工作台的软件依赖。
+## First installation
 
-工作空间根目录为当前 checkout。CLI 是 `./Harness/bin/printlab`，每次用当前 `--help` 确认参数。已有模型、工具环境和用户配置优先接续。
+Read `docs/AGENT_START.md` for setup, verification and role creation. Installation details are in `docs/SETUP.md`, third-party sources in `docs/DEPENDENCIES.md`, and device support in `docs/PRINTING.md`. Within the user's authorization, obtain third-party tools independently from their original authors and record versions and verification results. Setup downloads workbench dependencies from PyPI/npm.
 
-## 每次接手
+The workspace root is this checkout. The Mac CLI is `./Harness/bin/printlab`; Windows uses `Harness/bin/printlab.ps1`. Check current `--help` before choosing arguments. Continue existing models, environments and user configuration.
 
-1. 读 `Context/profile.md`、`Context/workflow.md`、`Context/agent-policy.json`、`Context/taste.md` 和 `Library/Devices/X2D/device.json`。初始化后这些文件才会齐备。
-2. 目标项目读 `project.json`、`brief.md`、`decisions.md` 和 `latest_session` 指向的交接。`printlab context 项目` 汇集同一份资料。
-3. 报告项目、当前版本、已确认选择、尚待验证的部分与本轮下一步。
-4. 收尾用 `printlab handoff` 保存完成结果、检查、问题和下一步。查看当前帮助确认参数。
+## Every handoff
 
-## 分工与持久化
+1. Read `Context/profile.md`, `Context/workflow.md`, `Context/agent-policy.json`, `Context/taste.md` and `Library/Devices/X2D/device.json`. Some files exist only after initialization.
+2. For the target project, read `project.json`, `brief.md`, `decisions.md` and the handoff referenced by `latest_session`. `printlab context PROJECT_ID` gathers the shared context.
+3. Report the project, current version, confirmed choices, remaining uncertainties and next action.
+4. Finish with `printlab handoff`, recording results, checks, problems and next steps. Use current command help.
 
-Sarah 负责设备、材料、故障和配件。Mike 负责工作台、工具和流程。任务小组负责具体作品。提示词见 `docs/ROLES.md`。角色通过共同文件和命令协作，模型选择由用户当前可用的 Codex 环境决定。只有用户明确要求时才创建新会话或派发子 Agent。
+## Roles and persistent records
 
-初始化生成 `Context/team.md`，保留实际队伍说明。可恢复的首次配置、角色入口及读回证据保存在 `Context/onboarding.json`。按 `docs/ONBOARDING.md` 查询已有聊天、创建缺少的 Mike 和 Sarah，读回实际首条介绍与共用资料。已有 Sara 入口接续为同一角色。用户的安装请求已经明确包含自动建队时直接执行，宿主能力缺失时记录真实待办。项目分工继续写 `Review/team.md`。
+Sarah handles devices, materials, faults and accessories. Mike maintains the workbench, tools and workflow. Each object has its own task group. Prompts are in `docs/ROLES.md`. Roles share files and commands; available models depend on the user's agent environment. Create chats or delegate to subagents only when the user explicitly requests it.
 
-共同文档的追加使用 `workspace note`，设备确认使用 `workspace device`，均带当前哈希并在冲突后重读。用户确认的库存通过 `material-intake` 登记到 Bambuddy。生图前执行 `constraints capture 项目ID` 保存本次设备材料及需求来源；CAD 和切片前通过 `context` 检查变化，按实际影响更新设计资料。未知字段保留待核实。
+Initialization creates `Context/team.md` for the actual team description. Resumable onboarding, role entry points and readback evidence live in `Context/onboarding.json`. Follow `docs/ONBOARDING.md` to find existing chats, create missing Mike/Sarah roles and read back their real introductions and shared context. An existing Sara entry is the same role under its earlier name. When the installation request explicitly includes automatic team creation, proceed; record a specific pending task if the host lacks the capability. Project assignments remain in `Review/team.md`.
 
-- `Context/` 存流程、偏好和经验，偏好依据用户明确反馈。
-- `Project/` 存需求、源模型、候选、正式版本、切片、回执和实物复盘。
-- `Library/` 存使用者的设备、材料知识、灵感和来源。
-- `Templates/Project/` 是新项目模板。
-- `Runtime/` 存本机配置、凭据、缓存与第三方运行环境。
+Append shared notes with `workspace note` and confirm devices with `workspace device`, supplying the current hash and rereading after conflicts. Register user-confirmed inventory through `material-intake` in Bambuddy. Before image generation, run `constraints capture PROJECT_ID` to preserve device, material and requirement sources. Before CAD or slicing, use `context` to check changes and update affected design records. Unknown facts remain unverified.
 
-用户数据与凭据始终在本机维护。修改仓库源码时，检查 Git 暂存区，避免提交真实设备信息、聊天和个人资料。
+- `Context/`: workflow, preferences and lessons; preferences require explicit user feedback.
+- `Project/`: requirements, source models, candidates, released versions, slices, receipts and physical reviews.
+- `Library/`: the user's devices, material knowledge, inspiration and sources.
+- `Templates/Project/`: templates for new projects.
+- `Runtime/`: local configuration, credentials, caches and third-party environments.
 
-## 设计与打印
+User data and credentials stay local. Review staged changes before committing source; exclude real device information, chats and personal records.
 
-遵循 `Context/image-to-print.md`，新外形两次选图后进入正式模型。真实模型按选定外形比较，接口、公差、装入路径、壁厚和承力分别检查。保留可编辑源，试模与成品共用接口参数，详见 `Context/cad-master-design.md`。
+## Design and printing
 
-每次最终制作检查质量、可靠性、打印总时间、支撑、材料切换和后处理。记录实际切片比较，模板见 `Templates/Project/Review/x2d-final-review.md`。
+Follow `Context/image-to-print.md`: for a new shape, complete the two image selections before the actual model. Compare real model geometry with the chosen target. Check interfaces, tolerances, insertion paths, wall thickness and loads independently. Preserve editable sources; test pieces and finished parts share interface parameters, as described in `Context/cad-master-design.md`.
 
-打印授权绑定具体模型版本、切片文件、设备、材料与当次清板事实。使用 `printlab approve / submit / reconcile` 的同一任务记录。首次设置、建模、切片、测试均保持无设备动作。准备发送时先核对已有任务，结果不明先对账，避免重复发送。配置前先运行 `printlab dispatch-plan`，传入已确认机型、供料方式和权限选择。默认先评估 Bambuddy 发送，并建议授予具体所需权限。先说明 LAN Only / Developer Mode 对云功能的影响，由使用者选择。用户拒绝、适配不支持或发送前检查失败时，按 `docs/PRINTING.md` 转官方 Studio 后备；Studio 控制仍失败则交接人工发送。上传、排队或发送结果未知时先对账，禁止换通道重发。官方 Studio 路线见 `Context/official-studio-dispatch.md`。
+For final manufacture, review quality, reliability, total print time, supports, material changes and post-processing. Record actual slicing comparisons using `Templates/Project/Review/x2d-final-review.md`.
 
-设备完成后进入实物检查。使用者确认配合、外观、强度或使用体验后，再登记验收结果。
+Printing approval binds the specific model version, sliced file, device, materials and current clear-plate evidence. Use the same task record through `printlab approve / submit / reconcile`. Installation, modeling, slicing and tests do not operate the device. Before sending, inspect existing tasks; reconcile an unknown outcome to avoid a duplicate print. Before configuring permissions, run `printlab dispatch-plan` with the confirmed model, feeding route and user choices. Evaluate Bambuddy first and recommend only the permissions it needs. Explain the effect of LAN Only / Developer Mode on cloud features and let the user choose. If permission is declined, the combination is unsupported or preflight fails, prepare the official Studio fallback described in `docs/PRINTING.md`; if Studio automation remains unavailable, hand off to manual sending. Unknown upload, queue or send results must be reconciled before changing routes. See `Context/official-studio-dispatch.md`.
 
-Codex 操作 Studio 出现 `noWindowsAvailable`、`timeoutReached` 或 `Computer Use is not active` 时，先读 `docs/STUDIO_COMPUTER_USE.md`。最多做一轮轻量窗口恢复，调用拆成单步；已有正确切片直接复用，需切片优先已验证的官方 CLI。Mac 可使用通用 studio-bridge windows / recover / open-file / open-panel 接续到发送准备页。A1 无 AMS / Ext 不套用 X2D 最终发送或 AMS 队列。人工交接与自动发送分别记录，结果不明先对账，不因换工具而重发。
+After the device finishes, inspect the physical part. Record acceptance only after the user confirms fit, appearance, strength or actual use.
 
-## 第三方来源与发布
+For Studio errors `noWindowsAvailable`, `timeoutReached` or `Computer Use is not active`, read `docs/STUDIO_COMPUTER_USE.md`. Attempt at most one lightweight window-recovery round, with one action per call. Reuse a correct existing slice; prefer a verified official CLI when slicing is needed. On Mac, the general `studio-bridge windows / recover / open-file / open-panel` commands can reach send preparation. Do not apply X2D final-send automation or an AMS queue route to an A1 without AMS / using Ext. Record manual handoff separately from automatic dispatch. Reconcile an unknown result rather than resending through another tool.
 
-遵循 `docs/DEPENDENCIES.md`。第三方代码、技能、权重、作者模型、应用及插件从原作者处独立取得，保留作者和原许可。PrintLab 自己的非商用许可仅覆盖原创代码和文档。发布模型是使用者另外提出的任务，逐件核对来源与许可。
+## Third-party sources and publishing
 
-## 既有终端与账号同步
+Follow `docs/DEPENDENCIES.md`. Obtain third-party code, skills, weights, author models, applications and plugins independently from their original projects, retaining author attribution and licenses. PrintLab's noncommercial license covers only its original code and documentation. Publishing a model is a separate user request: check each model's sources and permissions.
 
-安装先记录使用者正在使用的 Handy、Studio、Bambu Cloud 和 MakerWorld 功能，保留其账号登录、网络模式与现有凭据权限。为 PrintLab 新建专用读取凭据。用户需要云功能时，先说明 LAN Only / Developer Mode 的具体影响并确认所选路线。按 `docs/SYNC_TROUBLESHOOTING.md` 核对历史与收藏的实际来源及覆盖时间，核对原应用功能仍然可用。账号旧历史和 MakerWorld 收藏导入已排除在本轮开发范围外。已有档案缺图时，按 `docs/PREVIEW_RECOVERY.md` 使用 `printlab history-recover`，记录来源和恢复数量。
+## Existing apps and account synchronization
+
+Before setup, record the Handy, Studio, Bambu Cloud and MakerWorld features the user already relies on. Preserve logins, network mode and existing credential scopes. Create a dedicated read credential for PrintLab. If the user needs cloud features, explain the specific effects of LAN Only / Developer Mode and confirm the chosen route. Use `docs/SYNC_TROUBLESHOOTING.md` to check history/collection sources, coverage dates and continued operation of existing apps. Importing old account history and MakerWorld account collections remains outside the current scope. Recover missing archive images with `printlab history-recover` as described in `docs/PREVIEW_RECOVERY.md`, recording sources and counts.

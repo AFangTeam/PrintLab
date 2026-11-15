@@ -1,12 +1,12 @@
-# 主模型与同源试模
+# Master geometry and shared-source test pieces
 
-每个项目明确主设计入口、共享参数、坐标基准、毫米单位、受保护接口和各部件派生关系，记录在 `Review/cad-master-design.md`。
+Identify the master design entry point, shared parameters, coordinate system, millimeter units, protected interfaces and derivation of each part in `Review/cad-master-design.md`.
 
-- 主脚本生成整件与测试件，关键接口共用函数和参数。
-- 保存原生脚本、参数、依赖版本、原件及导出 hash。
-- STL、STEP、GLB 和 3MF 都关联本轮输入。CAD 使用毫米，GLB/Blender 的米制转换单独核对。
-- build123d 候选可经 STEP 交给现有 CadQuery 导出链。冻结 STEP 与输入参数，并核对转换前后尺寸和体积。
-- 检查最小壁厚、封闭性、连通体、重叠、装入/拆出路径及所需间隙。接触距离为零时继续检查穿透体积。
-- 当前脚本支持 cadquery/blender build。Text-to-CAD 的原生查看与导出由独立插件提供。
+- Generate the finished part and test pieces from the master script; share functions and parameters for critical interfaces.
+- Preserve native scripts, parameters, dependency versions, originals and export hashes.
+- Associate STL, STEP, GLB and 3MF exports with the current inputs. CAD uses millimeters; verify meter conversions for GLB/Blender separately.
+- A build123d candidate can pass through STEP into the existing CadQuery export path. Freeze the STEP and input parameters; check dimensions and volume before and after conversion.
+- Check minimum walls, watertightness, connected components, overlap, insertion/removal paths and required clearance. A zero contact distance still requires an intersection-volume check.
+- The current build script supports cadquery/blender. Native Text-to-CAD viewing and export come from its independently installed plugin.
 
-正式版本由当前项目负责人合入。候选使用独立路径，保留上一版和用户选择，版本变化使旧检查结果过期。
+The current project owner integrates final versions. Keep candidates at separate paths and preserve previous versions and user choices. A version change invalidates checks for affected geometry.

@@ -1,56 +1,58 @@
-# 观众怎样使用 PrintLab
+# Using PrintLab
 
-## 第一次把链接交给 Agent
+## Give the repository to your agent
 
-在这台电脑 上使用具有终端、文件读写能力的 Codex 或其他 Agent，把下面这段话发给它。
+Use Codex or another agent on this computer with terminal and local file access, then send:
 
-> 请帮我安装 https://github.com/AFangTeam/PrintLab 。先读取 README.md、AGENTS.md 和 docs/AGENT_START.md，在本机建立一个长期 PrintLab 工作空间，安装并启动工作台，运行入门验收。帮我建立 Sara · 3D 打印顾问和 Mike · 工作流设计师两个聊天，全部绑定同一工作空间，记录实际建立状态。第一件作品确定后再建立对应任务小组。缺少的工具按原作者渠道独立安装。需要我提供设备信息、登录或选择系统权限时，告诉我具体操作。最后给我工作空间路径、工作台地址、分工入口、已通过的验证和下一步。
+> Install https://github.com/AFangTeam/PrintLab on this computer. Read README.md, AGENTS.md and docs/AGENT_START.md. Create a persistent workspace, install and start the workbench, and run onboarding verification. Create Sarah, the 3D-printing advisor, and Mike, the workflow designer, as two chats sharing that workspace, and record their actual setup status. Create a task-group chat when I choose my first object. Install missing third-party tools independently from their original authors. Tell me the exact actions required for device information, login or system permissions. Report the workspace path, workbench URL, role entry points, verified results and next steps. Communicate in my preferred language.
 
-Agent 会下载仓库，安装工作台所需的软件包，生成本机配置并打开网页。首次打开通常是空项目和待连接设备。Agent 可继续整理偏好和设备资料，逐项接入建模、图像和打印工具。
+The agent downloads the repository, installs workbench dependencies, initializes local configuration and opens the page. A fresh installation normally has no projects and no connected device. The agent can then collect preferences/device facts and connect modeling, image and printing tools individually.
 
-通过浏览器查看仓库的 Agent 需要本机执行工具才能完成安装。聊天创建能力由宿主提供。宿主支持创建聊天时，Agent 可按上面的明确要求创建并核对。其他情况下，Agent 给出标题、提示词和路径，使用者在同一 Codex 工作空间创建聊天。
+Reading the repository in a browser does not give an agent local installation capability. Chat creation is also a host capability. If available, the agent can create and verify chats under the explicit request above. Otherwise, it supplies titles, prompts and the workspace path so the user can create chats in the same workspace.
 
-## 日常在哪儿交互
+## Where to interact
 
-| 想做什么 | 操作入口 | 结果 |
+The UI currently uses Chinese labels. The exact labels below help you locate controls; the explanations are in English.
+
+| Goal | Entry point | Result |
 | --- | --- | --- |
-| 讨论需求、发参考图、修改尺寸和外观 | Codex 任务小组聊天 | Agent 更新项目文件和设计版本 |
-| 问机器、耗材、故障和配件 | Sara 聊天 | 更新设备知识、材料依据和购物清单 |
-| 安装工具、排查连接和修工作台 | Mike 聊天 | 更新本机配置及验证记录 |
-| 看项目、模型、材料、历史与交接 | PrintLab 网页 | 查看当前工作空间保存的数据 |
-| 用网页整理新点子 | 点击“新想法”，填写后点击“复制需求到对话” | 将需求粘贴到任务小组聊天，由 Agent 创建项目 |
-| 开始已准备的具体打印 | “待打印”中的任务核验与启动按钮 | 使用当前设备状态、清板确认和任务授权执行 |
+| Discuss requirements, share references, revise dimensions/appearance | Task-group chat in Codex | Agent updates project files and design versions |
+| Ask about machines, filament, faults and accessories | Sarah chat | Updates device knowledge, material evidence and shopping list |
+| Install tools, diagnose connections, repair the workbench | Mike chat | Updates local configuration and verification records |
+| View projects, models, materials, history and handoffs | PrintLab web workbench | Displays data from the current workspace |
+| Capture a new idea | “新想法” (New idea), then “复制需求到对话” (Copy requirements to chat) | Paste into the task-group chat; the agent creates the project |
+| Start a specific prepared print | Task checks and start control under “待打印” (Prepared prints) | Uses current device state, clear-plate confirmation and task-specific authorization |
 
-网页通过共享文件展示 Agent 的产出。聊天负责理解需求、使用工具和写入项目。网页的“新想法”操作会生成一段可粘贴需求，完成粘贴并由 Agent 执行后，项目才进入图册。
+The page displays agent outputs through shared files. Chats handle requirements, tools and project updates. The New idea control produces a prompt to paste; the project enters the gallery only after the agent acts on it.
 
-## 建立第一件作品
+## Create your first object
 
-在同一工作空间新建聊天，命名为“任务小组 · 桌边耳机挂钩”，发送如下需求。
+Create a chat in the same workspace, for example “Task group · Desk headphone hook”, and send:
 
-> 我想做一个桌边耳机挂钩。先创建 PrintLab 项目，记录用途和需要测量的桌板厚度、可用空间、耳机重量。先完成需求整理，等我补充尺寸再进入外形方案。把需要 Sara 核对的材料与配件、需要 Mike 检查的工具写入项目分工，并把项目 ID 和图册入口告诉我。
+> I want a desk headphone hook. Create a PrintLab project and record its purpose plus the desk thickness, available space and headphone weight that I need to measure. Establish requirements first; wait for my measurements before shape concepts. Record Sarah's material/accessory checks and Mike's tool checks in the project assignments. Give me the project ID and gallery entry point.
 
-Agent 会用 `printlab new` 创建文件夹，得到如 `P001` 的项目 ID，写入需求与分工。回到网页点击刷新，在“项目图册”中打开它，可以查看需求、文件和交接。项目刚建立时显示“预览待生成”。真实模型导出后会出现相应预览。
+The agent uses `printlab new` to create a folder and an ID such as `P001`, then records requirements and assignments. Refresh the page and open it under “项目图册” (Project gallery) to see requirements, files and handoffs. A new project shows “预览待生成” (Preview not yet generated) until real geometry is exported.
 
-一次只做一件作品时，一个任务小组聊天就能推进所有阶段。需要协作时，把同一个项目 ID 和具体问题交给 Sara 或 Mike。实际聊天入口写入 `Context/team.md`，项目任务写入该项目的 `Review/team.md`。
+One task-group chat can cover every stage of one object. When collaboration is needed, give Sarah or Mike the same project ID and a specific question. Save actual chat entry points in `Context/team.md` and project tasks in `Review/team.md`.
 
-## 分工与交接怎么衔接
+## Assignments and handoffs
 
-给 Sara 的示例消息如下。
+For Sarah:
 
-> 请接手 P001，先运行 printlab context P001。核对这个挂钩适合的现有材料、需要另购的配件和仍未知的条件，把结果写入对应资料与 Review/team.md，再保存交接。
+> Take over P001. Run printlab context P001 first. Check suitable materials I already own, accessories to obtain and unresolved facts. Save results in the corresponding records and Review/team.md, then write a handoff.
 
-给 Mike 的示例消息如下。
+For Mike:
 
-> 请接手 P001，先读最近交接。检查本机建模和导出工具，修复当前阻塞，记录实际工具版本与验证结果，随后保存交接。
+> Take over P001 and read the latest handoff. Check local modeling/export tools, repair the current blocker, record actual versions and verification, then save a handoff.
 
-回到任务小组时可以这样说。
+Back in the task group:
 
-> 继续 P001，读最新 context、分工表和交接，沿用已确认尺寸与外形，从下一步继续。
+> Continue P001. Read the current context, assignments and handoff. Retain confirmed dimensions and appearance, and continue from the next step.
 
-每个聊天都要指向同一个绝对工作空间路径。Agent 每轮结束使用 `printlab handoff`，下一轮读取 `project.json.latest_session`。同一项目的正式版本由当前任务小组统筹，协作候选使用独立目录。
+Every chat must point to the same absolute workspace. At session end, use `printlab handoff`; the next session follows `project.json.latest_session`. The current task group coordinates the official version, while collaborators use separate candidate directories.
 
-## 从设计进入打印
+## Move from design to printing
 
-补齐需求后，按外形方案、三视图选择、实际 CAD、对照修改、配色、正式工程、切片比较逐步推进。Agent 会在需要审美选择和实测信息时向使用者展示结果。设备连接与材料映射核验后，再对具体任务确认打印和清板。机器完成后，把实物照片、尺寸与使用反馈交给任务小组记录。
+After requirements are complete, proceed through concepts, three-view selection, actual CAD, comparisons/revisions, colors, final engineering and slicing comparisons. The agent shows results when aesthetic choices or physical measurements are needed. After device connections and material mappings are checked, confirm the exact job and that the plate is clear. Once printing finishes, provide physical photos, measurements and usage feedback for the task group to record.
 
-工作台、角色分工、共享资料和项目接续可以从本仓库建立。图像生成、CAD、切片和实机发送的能力取决于本机独立安装的工具、账户权限、机型与材料。按接手指南逐项填写已验证状态。详细边界见 [依赖说明](DEPENDENCIES.md) 和 [打印说明](PRINTING.md)。
+This repository can establish the workbench, roles, shared records and project continuation. Image generation, CAD, slicing and physical dispatch depend on independently installed tools, account permissions, model and materials. Record each capability's real verification status. See [dependencies](DEPENDENCIES.md), [printing](PRINTING.md) and [language coverage](LANGUAGE.md).
