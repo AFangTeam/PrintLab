@@ -208,6 +208,113 @@ class StudioBridgeTests(unittest.TestCase):
                 with self.assertRaisesRegex(core.WorkflowError, '没有返回有效回执'):
                     bridge._run('send-once', 'bound-request.json')
                 run.assert_called_once()
+                pending = list((Path(root)/'Runtime/studio-bridge-ipc').iterdir())
+                self.assertEqual(len(pending), 1)
+                self.assertEqual(json.loads((pending[0]/'request.json').read_text())['args'],
+                                 ['send-once', 'bound-request.json'])
+                # A helper that finishes late can still write its exact receipt.
+                (pending[0]/'response.json').write_text('{"command_sent":true}')
+
+    def test_window_recovery_does_not_require_printer_or_ams(self):
+        with tempfile.TemporaryDirectory() as root, patch.object(core, 'ROOT', Path(root)), \
+                patch.object(bridge, '_run', return_value={'ok': True}) as helper, \
+                patch.object(bridge, 'display_name', side_effect=AssertionError('not a dispatch')):
+            self.assertTrue(bridge.window_status()['ok'])
+            helper.assert_called_once_with('probe', timeout=10)
+            helper.reset_mock()
+            bridge.observe_window(123, 'A1 preview', recover=True)
+            helper.assert_called_once_with('recover-window', 123, 'A1 preview')
+
+    def test_window_recovery_requires_exact_target(self):
+        with patch.object(bridge, '_run') as helper:
+            for pid, title in [(None, 'test'), (True, 'test'), (0, 'test'), (123, None), (123, ' ')]:
+                with self.assertRaises(core.WorkflowError):
+                    bridge.observe_window(pid, title, recover=True)
+            helper.assert_not_called()
+
+    def test_open_preview_panel_is_nonprinting_and_model_independent(self):
+        with tempfile.TemporaryDirectory() as root, patch.object(core, 'ROOT', Path(root)), \
+                patch.object(bridge, 'window_status', return_value={'studio_version': bridge.STUDIO_VERSION}), \
+                patch.object(bridge, 'display_name', side_effect=AssertionError('not dispatch')), \
+                patch.object(bridge, '_run', return_value={'ok': True, 'opened_panel': True, 'sent': False}) as helper:
+            result = bridge.open_preview_panel(123, 'A1-external-test.gcode')
+            self.assertFalse(result['sent'])
+            helper.assert_called_once_with('open-panel', 123, 'A1-external-test.gcode')
+            self.assertFalse(list(Path(root).rglob('approval.json')))
+            self.assertFalse(list(Path(root).rglob('dispatch.json')))
+
+    def test_open_preview_panel_rejects_unknown_version_and_unsliced_window(self):
+        with patch.object(bridge, 'window_status', return_value={'studio_version': 'unknown'}), \
+                patch.object(bridge, '_run') as helper:
+            for pid, title in [(0, 'a.gcode'), (123, 'untitled'), (123, '*.gcode'), (123, 'a.gcode')]:
+                with self.assertRaises(core.WorkflowError):
+                    bridge.open_preview_panel(pid, title)
+            helper.assert_not_called()
+
+    def test_helper_failure_retains_machine_readable_stage(self):
+        with tempfile.TemporaryDirectory() as root:
+            def reply(command, **kwargs):
+                request=json.loads(Path(command[-2]).read_text())
+                Path(command[-1]).write_text(json.dumps({'ok': False, 'request_id': request['request_id'],
+                    'error': 'Exact visible window is absent or ambiguous',
+                    'code': 'visible_window_missing', 'stage': 'window_capture'}))
+                return subprocess.CompletedProcess(command, 0, '', '')
+            with patch.object(core, 'ROOT', Path(root)), patch.object(bridge, '_verify_bundle'), \
+                    patch.object(bridge.subprocess, 'run', side_effect=reply):
+                with self.assertRaises(bridge.HelperError) as caught:
+                    bridge._run('snapshot', 123, 'test')
+                self.assertEqual(caught.exception.stage, 'window_capture')
+                self.assertEqual(caught.exception.code, 'visible_window_missing')
+
+    def test_open_file_hash_and_permissions_block_launch(self):
+        with tempfile.TemporaryDirectory() as root, patch.object(core, 'ROOT', Path(root)), \
+                patch.object(bridge, '_launch_preview') as launch:
+            source = Path(root)/'A1.gcode.3mf'
+            source.write_bytes(b'slice')
+            with self.assertRaisesRegex(core.WorkflowError, 'Artifact changed'):
+                bridge.open_preview_file(source, '0'*64)
+            with patch.object(bridge, 'window_status', return_value={'studio_version':bridge.STUDIO_VERSION}):
+                with self.assertRaisesRegex(core.WorkflowError, '权限'):
+                    bridge.open_preview_file(source, core.digest(source))
+            launch.assert_not_called()
+
+    def test_open_file_preserves_source_and_opens_checked_copy(self):
+        observed = {'studio_version':bridge.STUDIO_VERSION, 'accessibility':True,
+                    'screen_capture':True, 'session_on_console':True, 'screen_locked':False,
+                    'instances':[{'pid':123}]}
+        with tempfile.TemporaryDirectory() as root, patch.object(core, 'ROOT', Path(root)), \
+                patch.object(bridge, 'window_status', return_value=observed), \
+                patch.object(bridge, '_launch_preview', return_value=456) as launch:
+            source = Path(root)/'A1.gcode.3mf'
+            source.write_bytes(b'original')
+            def prepare(src, dst):
+                self.assertEqual(src, source.resolve())
+                dst.write_bytes(b'preview')
+                return {'gcode_and_settings_identical':True, 'resliced':False}
+            with patch.object(bridge.official, 'sliced_only', side_effect=prepare):
+                result = bridge.open_preview_file(source, core.digest(source))
+            self.assertEqual(source.read_bytes(), b'original')
+            self.assertFalse(result['sent'])
+            self.assertEqual(result['studio_pid'],456)
+            self.assertNotEqual(result['preview_file'],str(source))
+            launch.assert_called_once_with(Path(result['preview_file']), 'A1.gcode', {123})
+
+    def test_launch_preview_ignores_existing_instance_and_launches_once(self):
+        old = {'pid':123, 'windows':[{'title':'A1.gcode'}]}
+        new = {'pid':456, 'windows':[{'title':'A1.gcode'}]}
+        with patch.object(bridge.subprocess, 'run') as launch, \
+                patch.object(bridge, '_run', side_effect=[{'instances':[old]}, {'instances':[old,new]}]), \
+                patch.object(bridge.time, 'sleep'):
+            self.assertEqual(bridge._launch_preview(Path('A1.gcode.3mf'),'A1.gcode',{123}),456)
+            launch.assert_called_once()
+
+    def test_launch_preview_timeout_never_reopens_file(self):
+        with patch.object(bridge.subprocess, 'run') as launch, \
+                patch.object(bridge.time, 'monotonic', side_effect=[0,41]):
+            with self.assertRaises(bridge.HelperError) as caught:
+                bridge._launch_preview(Path('A1.gcode.3mf'),'A1.gcode',set())
+            self.assertEqual(caught.exception.code, 'preview_not_observed')
+            launch.assert_called_once()
 
     def test_nonzero_exit_preserves_bound_helper_error(self):
         with tempfile.TemporaryDirectory() as root:

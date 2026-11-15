@@ -1,7 +1,8 @@
 """Session-independent, fail-closed bridge to official Bambu Studio.
 
-The UI adapter is deliberately limited to the locally validated Chinese Studio
-build, one main-nozzle AMS filament, and one Textured PEI plate. It preserves an
+Common window controls work independently of printer/feeding type. Final dispatch
+is limited to the locally validated Chinese Studio build and X2D single AMS
+filament on Textured PEI. It preserves an
 existing Studio project by opening a separate instance. No default probe opens
 windows, reserves a job, or sends a command. A Send click is evidence of dispatch,
 not evidence that the printer accepted or started the job.
@@ -38,6 +39,14 @@ class BeforeSendError(core.WorkflowError):
     """The final-click helper was never invoked; no print command was attempted."""
     verified_not_sent = True
     command_sent = False
+
+
+class HelperError(core.WorkflowError):
+    """Keep the failed stage; a helper error alone never proves a Send failed."""
+    def __init__(self, message, *, code='helper_failed', stage='helper'):
+        super().__init__(message)
+        self.code = code
+        self.stage = stage
 
 
 class IncompleteDeviceInfoError(core.WorkflowError):
@@ -110,8 +119,9 @@ def _run(*args, timeout=20):
     _verify_bundle()
     ipc_root=core.ROOT/'Runtime/studio-bridge-ipc'
     ipc_root.mkdir(parents=True,exist_ok=True);ipc_root.chmod(0o700)
-    with tempfile.TemporaryDirectory(prefix='request-',dir=ipc_root) as temporary:
-        private=Path(temporary);private.chmod(0o700)
+    private=Path(tempfile.mkdtemp(prefix='request-',dir=ipc_root));private.chmod(0o700)
+    receipt_read = False
+    try:
         request=private/'request.json';response=private/'response.json'
         request_id=str(uuid.uuid4())
         payload=json.dumps({'request_id':request_id,'created_at':time.time(),'args':list(map(str,args))})
@@ -127,12 +137,120 @@ def _run(*args, timeout=20):
         try:data=json.loads(response.read_text(encoding="utf-8"))
         except (OSError,ValueError,TypeError):
             detail = (process.stderr or '').strip()[:600]
-            raise core.WorkflowError(f'发送助手没有返回有效回执（退出码 {process.returncode}）{": " + detail if detail else ""}') from None
+            raise HelperError(f'发送助手没有返回有效回执（退出码 {process.returncode}）{": " + detail if detail else ""}；保留本次回执目录：{private}', code='receipt_missing', stage='ipc') from None
         if not isinstance(data, dict):raise core.WorkflowError('发送助手回执格式无效')
         if data.get('request_id') != request_id:raise core.WorkflowError('发送助手回执不属于本次请求')
-        if data.get('ok') is not True:raise core.WorkflowError(data.get('error','发送助手执行失败'))
+        receipt_read = True
+        if data.get('ok') is not True:
+            raise HelperError(data.get('error','发送助手执行失败'),
+                              code=data.get('code','helper_failed'), stage=data.get('stage','helper'))
         if process.returncode:raise core.WorkflowError(f'发送助手启动命令异常退出（退出码 {process.returncode}），执行结果仍需核实')
         return data
+    finally:
+        # An unacknowledged helper can still be running. Keep its exact private
+        # response path so a late receipt remains recoverable; never relaunch.
+        if receipt_read:
+            shutil.rmtree(private)
+
+
+def observe_window(studio_pid, title, *, recover=False):
+    """Observe/recover one exact window, independently of printer or feeding type.
+
+    Recovery activates and restores the window once. It never clicks a Studio
+    button, opens a print job, reserves a task, or requests OS permissions.
+    """
+    if sys.platform != 'darwin':
+        raise core.WorkflowError('窗口助手需要 macOS')
+    if type(studio_pid) is not int or studio_pid <= 0 or not isinstance(title, str) or not title.strip():
+        raise core.WorkflowError('需要明确的 Studio 进程 ID 和完整窗口标题')
+    with core.lock('studio-bridge'):
+        return _run('recover-window' if recover else 'snapshot', studio_pid, title)
+
+
+def window_status():
+    """Read-only diagnostics without X2D, AMS, or printer-name prerequisites."""
+    if sys.platform != 'darwin':
+        raise core.WorkflowError('窗口助手需要 macOS')
+    return _run('probe', timeout=10)
+
+
+def open_preview_panel(studio_pid, title):
+    """Open the preparation dialog for an exact preview; never click Send.
+
+    This is common window control, not a declaration that this printer/feeding
+    route is supported by the automatic dispatch validator.
+    """
+    if sys.platform != 'darwin':
+        raise core.WorkflowError('窗口助手需要 macOS')
+    if (type(studio_pid) is not int or studio_pid <= 0 or not isinstance(title, str)
+            or not title.endswith('.gcode') or '*' in title):
+        raise core.WorkflowError('需要明确的 Studio 进程 ID 和完整 .gcode 预览窗口标题')
+    observed = window_status()
+    if observed.get('studio_version') != STUDIO_VERSION:
+        raise core.WorkflowError('Studio 版本变更，需重新验证界面适配器')
+    with core.lock('studio-bridge'):
+        return _run('open-panel', studio_pid, title)
+
+
+def _launch_preview(artifact, title, before):
+    """One launch, then observations only. Preserve all existing Studio instances."""
+    subprocess.run(['/usr/bin/open','-n','-a',BUNDLE,'--args',str(artifact)], check=True, timeout=10)
+    deadline = time.monotonic()+40
+    while time.monotonic()<deadline:
+        observed = _run('probe')
+        matches = [i for i in observed.get('instances', []) if i['pid'] not in before
+                   and any(w['title'] == title for w in i['windows'])]
+        if len(matches) == 1:
+            return matches[0]['pid']
+        if len(matches) > 1:
+            raise HelperError('Multiple new Studio instances; refusing to choose',
+                              code='preview_ambiguous', stage='after_open_file')
+        time.sleep(.5)
+    raise HelperError('Studio did not expose the exact preview. Inspect running windows before opening another copy; no print sent',
+                      code='preview_not_observed', stage='after_open_file')
+
+
+def open_preview_file(path, expected_sha256):
+    """Open one explicitly identified slice without changing the original project."""
+    if sys.platform != 'darwin':
+        raise core.WorkflowError('窗口助手需要 macOS')
+    if not isinstance(path, (str, Path)) or not str(path).strip():
+        raise core.WorkflowError('需要明确的 .gcode.3mf 切片文件')
+    artifact = Path(path).expanduser().resolve()
+    if not artifact.is_file() or not artifact.name.endswith('.gcode.3mf') or '*' in artifact.name:
+        raise core.WorkflowError('需要明确的 .gcode.3mf 切片文件')
+    if not isinstance(expected_sha256, str) or not re.fullmatch(r'[0-9a-f]{64}', expected_sha256):
+        raise core.WorkflowError('需要当前切片文件的 SHA-256，避免打开错误或变化后的文件')
+    if core.digest(artifact) != expected_sha256:
+        raise core.WorkflowError('Artifact changed')
+    with core.lock('studio-bridge'):
+        observed = window_status()
+        if observed.get('studio_version') != STUDIO_VERSION:
+            raise core.WorkflowError('Studio 版本变更，需重新验证界面适配器')
+        if not observed.get('accessibility') or not observed.get('screen_capture'):
+            raise core.WorkflowError('PrintLab发送助手需要辅助功能和屏幕读取权限')
+        if not observed.get('session_on_console') or observed.get('screen_locked'):
+            raise core.WorkflowError('需要已登录且未锁屏的桌面会话')
+        # A CLI slice can contain editable meshes. Studio then opens Prepare
+        # instead of the executable preview. Use the same byte-checked copy
+        # routine as official handoff; never reslice or alter the original.
+        preview_root = core.ROOT/'Runtime/studio-previews'
+        preview_root.mkdir(parents=True, exist_ok=True)
+        directory = Path(tempfile.mkdtemp(prefix='preview-', dir=preview_root))
+        opened = directory/artifact.name
+        preservation = official.sliced_only(artifact, opened)
+        if core.digest(artifact) != expected_sha256:
+            raise core.WorkflowError('Artifact changed while preparing preview')
+        opened_sha256 = core.digest(opened)
+        core.write_json(directory/'source.json', {'source':str(artifact), 'source_sha256':expected_sha256,
+                        'preview_sha256':opened_sha256, 'preservation':preservation})
+        title = opened.name.removesuffix('.3mf')
+        target = _launch_preview(opened, title, {i['pid'] for i in observed.get('instances', [])})
+        return {'opened_preview': True, 'studio_pid': target, 'window_title': title,
+                'artifact_sha256': expected_sha256, 'sent': False,
+                'preview_file':str(opened), 'preview_sha256':opened_sha256,
+                'preservation':preservation,
+                'next': 'Inspect the exact preview; opening it does not verify printer or feeding settings.'}
 
 
 def setup_permissions():
@@ -258,20 +376,9 @@ def _open_prepared(pid,jid):
     jd = core.job_path(pid,jid); job = core.read_json(jd/'job.json')
     cap = capability(pid,jid)
     if not cap['available']: raise core.WorkflowError(cap['message'])
-    before = {i['pid'] for i in cap['observation'].get('instances',[])}
     artifact = core.safe_path(jd,job['artifact'])
     if core.digest(artifact) != job['artifact_sha256']: raise core.WorkflowError('Artifact changed')
-    subprocess.run(['/usr/bin/open','-n','-a',BUNDLE,'--args',str(artifact)], check=True, timeout=10)
-    target = None
-    deadline = time.monotonic()+40
-    while time.monotonic()<deadline:
-        probe = _run('probe')
-        matches = [i for i in probe.get('instances',[]) if i['pid'] not in before and any(w['title']==jid+'.gcode' for w in i['windows'])]
-        if len(matches)==1:
-            target=matches[0]['pid']; break
-        if len(matches)>1: raise core.WorkflowError('Multiple new Studio instances; refusing to choose')
-        time.sleep(.5)
-    if target is None: raise core.WorkflowError('Studio did not load the exact job; no print sent')
+    target = _launch_preview(artifact, jid+'.gcode', {i['pid'] for i in cap['observation'].get('instances',[])})
     _run('open-panel',target,jid+'.gcode')
     time.sleep(1)
     shot = _run('inspect-panel',target,'发送打印任务')

@@ -41,7 +41,7 @@ Sarah 负责设备、材料、故障和配件。Mike 负责工作台、工具和
 
 设备完成后进入实物检查。使用者确认配合、外观、强度或使用体验后，再登记验收结果。
 
-Codex 操作 Studio 出现 `noWindowsAvailable`、`timeoutReached` 或 `Computer Use is not active` 时，先读 `docs/STUDIO_COMPUTER_USE.md`。最多做一轮轻量窗口恢复，调用拆成单步；已有正确切片直接复用，需切片优先已验证的官方 CLI。A1 无 AMS / Ext 不套用 X2D 助手或 AMS 队列。人工交接与自动发送分别记录，结果不明先对账，不因换工具而重发。
+Codex 操作 Studio 出现 `noWindowsAvailable`、`timeoutReached` 或 `Computer Use is not active` 时，先读 `docs/STUDIO_COMPUTER_USE.md`。最多做一轮轻量窗口恢复，调用拆成单步；已有正确切片直接复用，需切片优先已验证的官方 CLI。Mac 可使用通用 studio-bridge windows / recover / open-file / open-panel 接续到发送准备页。A1 无 AMS / Ext 不套用 X2D 最终发送或 AMS 队列。人工交接与自动发送分别记录，结果不明先对账，不因换工具而重发。
 
 ## 第三方来源与发布
 
