@@ -44,7 +44,7 @@ def main():
         cli = ['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', str(target / 'Harness/bin/printlab.ps1')] if sys.platform == 'win32' else [str(target / 'Harness/bin/printlab')]
         subprocess.run([*cli, 'context'], cwd=target, env=env, check=True, timeout=60, stdout=subprocess.DEVNULL)
         route = subprocess.run([*cli, 'dispatch-plan', '--model', 'A1', '--feeding', 'external'],
-                               cwd=target, env=env, check=True, timeout=60, capture_output=True, text=True)
+                               cwd=target, env=env, check=True, timeout=60, capture_output=True)
         route_result = json.loads(route.stdout)
         assert route_result['preferred_route'] == 'official_studio' and not route_result['ready_to_print']
         # Real default inspector, not an injected successful return.
