@@ -1,9 +1,11 @@
-# 贡献与复现问题
+# Contributing and reporting problems
 
-请先读 README 的支持范围和 docs/VERIFICATION.md，使用明确 Release 或提交号。问题按 GitHub 的“安装或使用问题”模板提供，删除访问码、API key、序列号、私人地址与作品中的私人信息。
+Read the README's supported environment and `docs/VERIFICATION.md`. Identify the release tag or commit you are using. Use the installation or usage issue form and remove access codes, API keys, serial numbers, private network addresses and private information in your models.
 
-修改在独立分支完成。运行安装脚本、入门验收、Python/Node 测试和浏览器验收；改变打印路径时须保留文件指纹、具体批准、实时状态、单次发送与未知结果不重发的约束。合成设备测试不能证明真实设备工作。
+Use English for maintained technical documentation and new explanatory comments; users may report problems in their preferred language. Keep the Chinese README consistent with the default English README. See [language coverage](docs/LANGUAGE.md) before translating UI or device-control strings.
 
-新增机型适配需提供该机型的配置来源、文件检查、材料/供料映射和验证证据，不能仅添加型号名称即宣称支持。不要提交第三方源码、权重、真实模型、个人设备配置或凭据；第三方从其原项目独立获取。
+Make changes on a separate branch. Run setup, onboarding verification, Python and Node tests, and browser verification. Changes to printing routes must preserve file fingerprints, task-specific approval, current device checks, single-send reservations and reconciliation of unknown outcomes. Synthetic-device tests do not prove that a real printer works.
 
-原创贡献沿用 LICENSE.md 与 NOTICE.txt。更新依赖时同时更新锁文件和跨平台验证，发布说明区分已验证与仍待验证。
+New printer adapters need evidence for model-specific profiles, file inspection, material/feeding mappings and verification. Adding a model name alone does not establish support. Do not commit third-party source, weights, real user models, personal device settings or credentials; install third-party tools independently from their original projects.
+
+Original contributions retain `LICENSE.md` and `NOTICE.txt`. Dependency changes must include lockfiles and cross-platform verification. Release notes must distinguish verified behavior from remaining work.

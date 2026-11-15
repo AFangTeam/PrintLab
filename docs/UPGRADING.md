@@ -1,45 +1,49 @@
-# 更新、备份与回退
+# Updates, backups and rollback
 
-更新前记录当前 Release 标签和本机工具版本，结束文件编辑并停止工作台。正在打印或回执未知的任务，先保留记录并读取实际设备状态。
+Before upgrading, record the release tag and local tool versions, finish file edits and stop the workbench. Preserve records for printing tasks or unknown receipts and read the actual device state first.
 
-## 保存数据
+## Save your data
 
-在当前工作空间执行。Windows 将解释器换成 `Runtime/venv/Scripts/python.exe`。
+Run in the current workspace. On Windows, use `Runtime/venv/Scripts/python.exe`.
 
 ```bash
 Runtime/venv/bin/python Harness/backup.py backup --verify
 ```
 
-成功结果包含快照位置、恢复验证目录和 `sha256: all_match`。备份含本机凭据，应存放在本人受限目录。该命令验证文件恢复和数据库完整性。Bambuddy 安装在工作空间外时，用 Bambuddy 自身备份功能另行保存它的数据。
+A successful result includes the snapshot path, restore-verification directory and `sha256: all_match`. Backups contain local credentials; keep them in a restricted directory. The command checks file restoration and database integrity. If Bambuddy is installed outside this workspace, also back up its data through Bambuddy's own facility.
 
-另外保留当前版本的完整源码 ZIP。备份脚本只复制其清单列出的目录，环境和第三方安装需要按原版本重建。
+Keep a complete source ZIP of the current version as well. The backup script copies only its listed directories; environments and third-party installations must be reconstructed at the appropriate versions.
 
-## 升级
+## Upgrade
 
-Git 用户先用 `git status --short` 检查自己修改过的源码与流程文档，保存修改后切换到选定 Release 标签，再运行安装脚本。ZIP 用户将新版解压到独立目录，保留旧目录，迁移 `Project`、个人 `Library`、`Runtime/config.json` 和 `Runtime/private`。将自己修改过的 `Context` 与新版逐项合并，保留设备档案和用户明确决定。
+Git users should inspect `git status --short`, preserve local source/workflow edits, switch to the selected release tag and rerun setup. ZIP users should extract into a separate directory, keep the old directory and migrate `Project`, personal `Library`, `Runtime/config.json` and `Runtime/private`. Merge customized `Context` files individually with the new version, preserving device records and explicit user decisions.
 
-Mac 运行 `bash scripts/setup.sh`。Windows 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup.ps1`。初始化会保留已有配置。然后执行 `doctor`、`context` 和 `scripts/verify_onboarding.py`，核对项目数量、最近交接、设备身份和材料读取。
+On Mac, run `bash scripts/setup.sh`. On Windows, run `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup.ps1`. Initialization preserves existing configuration. Then run `doctor`, `context` and `scripts/verify_onboarding.py`; check project counts, recent handoffs, device identity and materials.
 
-升级前已批准的任务重新核对文件及设备。文件或材料映射变化时按当前任务重新确认。
+Recheck the files and device for tasks approved before upgrading. If the file or material mapping changed, obtain confirmation for the current task.
 
-## 回退
+## Roll back
 
-停止新版工作台，保存升级后新增的项目与任务记录。在独立目录解压旧版源码，用旧版安装脚本重建依赖。先恢复到备份验证目录并核对 SHA-256，再迁移相应数据，检查项目和设备连接。保留新版目录以便找回新增记录。
+Stop the new workbench and preserve project/task records created after the upgrade. Extract the old source into a separate directory and rebuild dependencies using that version's setup script. Restore into the backup-verification directory first and check SHA-256 before migrating the appropriate data. Check projects and device connections; retain the newer directory to recover recent records.
 
-实际恢复前核对目标路径。Bambuddy 数据库恢复时停止该服务，按其官方恢复流程处理数据库及伴随文件。回退后运行 `doctor` 和只读状态检查，未知发送结果继续使用已有任务记录对账。
+Confirm target paths before actual restoration. Stop Bambuddy before restoring its database and follow its official process for the database and companion files. After rollback, run `doctor` and read-only status checks. Continue reconciling unknown send outcomes using their existing task records.
 
-## 安装失败
+## Installation failures
 
-- Python 版本不足时选择 Python 3.11+，使用 `PRINTLAB_PYTHON` 指向解释器后重跑安装。
-- PyPI/npm 下载失败时保存错误类型和失败域名，恢复网络后重跑同一安装命令。
-- 文件检查器失败时运行 `Runtime/venv/bin/python scripts/install_inspector.py`，Windows 换用对应解释器，再运行 `doctor`。
-- 端口占用时核对已有服务。独立工作空间通过启动命令的 `--port` 选择端口。
-- 设备读不到时依次核对 Bambuddy 页面、实际服务 URL、只读 key、打印机 ID 和网络模式。接口连接成功后，再核对实时数据时间与材料。
+- For an old Python, select Python 3.11+ with `PRINTLAB_PYTHON` and rerun setup.
+- For PyPI/npm download failures, preserve the error type and failed domain, restore connectivity and rerun the same command.
+- For inspector failures, run `Runtime/venv/bin/python scripts/install_inspector.py` (use the Windows interpreter there), then `doctor`.
+- For an occupied port, identify the existing service. Use `--port` only for an independent workspace.
+- For missing devices, check the Bambuddy page, actual URL, read key, printer ID and network mode in order. After the API connects, check data timestamps and materials.
 
-提交问题时使用仓库问题表单，附操作系统、Release、脱敏错误和复现步骤。凭据文件保留在本机。
+Use the repository issue form with OS, release, redacted errors and reproduction steps. Keep credential files local.
 
-## v0.4.3
+## v0.4.4: English-first documentation
 
-本版先判断发送路线，再建议必要权限。新增 `dispatch-plan` 只读命令，并加强 Bambuddy 队列启动前的文件、盘号和材料检查。现有批准任务不自动换通道。
+The default README and core installation/agent guides are now in English. Chinese remains available in `README.zh-CN.md`, and old `README.en.md` links still work. YouTube is the primary walkthrough link. Existing private project data, UI text and device-control behavior are unchanged. Merge any customized instructions deliberately; do not replace user records to change their language. See [language coverage](LANGUAGE.md).
 
-A1 无 AMS / Ext 仍使用 Studio 后备；本版没有新增这一组合的自动发送。已经在 Studio 成功切片的用户可直接继续当前打印，无需为此先升级。希望 Codex 接续新的路线判断和窗口助手时，再按本页升级。只下载 Release ZIP 不会自动升级已有工作空间。
+## v0.4.3: route selection and queue checks
+
+The read-only `dispatch-plan` command assesses the route before recommending permissions. Queue startup checks the file, plate and materials; previously approved tasks do not automatically switch routes.
+
+A1 without AMS / using Ext still uses Studio fallback; this combination has no new automatic dispatch adapter. If Studio has already sliced the correct file, continue that print there without upgrading solely for troubleshooting. Upgrade when you want the newer route planning/window helper. Downloading a ZIP does not automatically upgrade an existing workspace.

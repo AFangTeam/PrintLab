@@ -1,22 +1,22 @@
-# Agent 从 GitHub 接手 PrintLab
+# Taking over PrintLab from GitHub
 
-## 接手目标与当前能力
+## Goal and available capabilities
 
-目标是让使用者拥有自己的工作台、共同资料、角色分工和可跨会话继续的项目。首先确认当前 Agent 能读取 GitHub、运行本机终端、读写目标目录。浏览器/桌面控制、图像生成、CAD 查看器和聊天管理能力按当前宿主实际暴露的工具记录。
+Give the user a persistent workbench, shared records, clear roles and projects that continue across sessions. First confirm that the agent can read GitHub, run a local terminal and read/write the target directory. Record browser/desktop control, image generation, CAD viewing and chat-management capabilities only if the current host actually exposes them.
 
-用户给出本仓库链接并要求安装时，先读取 README 和 AGENTS。按下面步骤自主完成授权内的安装、软件验收和故障修复。需要账户登录、密钥授权、系统权限选择、实体测量或装料时，给出具体操作，取得实际结果后继续。
+When the user supplies this repository and asks for installation, read the README and AGENTS first. Complete authorized setup, software checks and repairs using the steps below. For account login, credential authorization, system-permission choices, physical measurement or loading material, give concrete instructions and continue after obtaining the real result.
 
-所有相对路径均以仓库根目录为基准。共享目录是本机唯一长期工作空间。示例项目 ID 必须替换为命令实际返回的 ID。
+Paths are relative to the repository root. Use one persistent local workspace. Replace example project IDs with IDs actually returned by commands. Communicate in the user's preferred language; some detailed references and the workbench UI remain Chinese, as documented in [language coverage](LANGUAGE.md).
 
-## 下载和安装
+## Download and install
 
-先识别操作系统。Windows 使用 `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup.ps1` 安装，使用同样方式执行 `scripts/start.ps1` 启动。以下 Bash 示例中的 `./Harness/bin/printlab` 在 PowerShell 中替换为 `powershell -NoProfile -ExecutionPolicy Bypass -File .\Harness\bin\printlab.ps1`，`Runtime/venv/bin/python` 替换为 `Runtime/venv/Scripts/python.exe`。Windows 完整步骤见 [Windows 指南](WINDOWS.md)。
+Identify the OS first. On Windows, install with `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup.ps1` and start with the same invocation of `scripts/start.ps1`. In Bash examples below, replace `./Harness/bin/printlab` with `powershell -NoProfile -ExecutionPolicy Bypass -File .\Harness\bin\printlab.ps1`, and `Runtime/venv/bin/python` with `Runtime/venv/Scripts/python.exe`. See the [Windows guide](WINDOWS.md).
 
-1. 检查当前目录和已有安装，找到已有工作空间就接续。新安装选择使用者指定路径，未指定时可采用 `~/PrintLab`，已有同名目录时先检查内容。
-2. 克隆 `https://github.com/AFangTeam/PrintLab.git`，或下载 Release 的 `PrintLab.zip`。将 Codex 工作空间指向实际仓库根目录。
-3. 检查 `python3 --version`、`node --version` 和 `npm --version`。需要 Python 3.11+、Node.js 22+。系统解释器较旧时，使用本机合适的解释器路径设置 `PRINTLAB_PYTHON`。缺少的基础运行时从官方来源安装。
-4. 运行 `bash scripts/setup.sh`。安装结果应包含 `Runtime/venv/bin/python`、`Harness/studio/dist/index.html`、本机配置及 `Context/team.md`。
-5. 运行下面的入门验收。它使用临时工作空间，通过实际 CLI 子进程检查建项目、分工、交接、重新读取及 API。命令结束输出 JSON，`ok` 应为 `true`。
+1. Inspect the current directory and existing installations. Continue an existing workspace. For a new installation, use the user's chosen path; `~/PrintLab` is a possible default, but inspect any existing directory before using it.
+2. Clone `https://github.com/AFangTeam/PrintLab.git` or download `PrintLab.zip` from an explicit release. Point the agent workspace at the actual repository root.
+3. Check `python3 --version`, `node --version` and `npm --version`. Python 3.11+ and Node.js 22+ are required. If the system interpreter is too old, set `PRINTLAB_PYTHON` to a suitable installed interpreter. Obtain missing runtimes from official sources.
+4. Run `bash scripts/setup.sh` on Mac or the Windows equivalent. Expect a virtual environment, `Harness/studio/dist/index.html`, local configuration and `Context/team.md`.
+5. Run onboarding verification below. It uses temporary workspaces and real CLI subprocesses to check project creation, assignments, handoffs, rereading and the API. The final JSON must report `ok: true`.
 
 ```bash
 Runtime/venv/bin/python scripts/verify_onboarding.py
@@ -24,76 +24,74 @@ Runtime/venv/bin/python scripts/verify_onboarding.py
 ./Harness/bin/printlab context
 ```
 
-`doctor` 的工具路径存在检查只能说明文件存在。继续用各工具实际帮助和最小功能调用验证可用性。第一次 `context` 的 `missing` 应为空，设备和材料可以处于待配置状态。
+A tool-path existence check only establishes that a file exists. Also exercise each tool's actual help and smallest useful operation. The first `context` result should have no `missing` entries; device and material fields may remain unconfigured.
 
-## 启动与检查工作台
+## Start and inspect the workbench
 
-运行 `bash scripts/start.sh`，在单独终端或宿主提供的持久进程中保持服务。打开 `http://127.0.0.1:8018`。默认端口被占用时，核对已有服务身份，独立工作空间可使用 `--port 18018`。
+Run `bash scripts/start.sh` in a separate terminal or a persistent process supplied by the host. Open `http://127.0.0.1:8018`. If the port is occupied, identify the existing service first; a separate workspace can use `--port 18018`.
 
-检查 `/api/health` 返回 `ok: true`，网页能显示总览、项目图册、资料与设备页。空工作空间应显示待配置设备。先把工作台地址和启动方式交给使用者。服务存活期间网页可持续访问，终端停止后需重新运行启动命令。
+Check that `/api/health` returns `ok: true` and the overview, project gallery, library and device pages render. An empty workspace should show an unconfigured device. Give the user the URL and launch command. The page remains available while the service runs; restart it after the terminal exits.
 
-## 首次设备与偏好配置
+## Device and preference setup
 
-先完成 [首次配置访谈](FIRST_RUN.md)，把已确认信息写入共享设备档案与个人偏好。任务小组须读取同一份记录，不能套用作者的机器配置。
+Complete the [first-run interview](FIRST_RUN.md), recording confirmed facts in the shared device card and user preferences. Task groups read the same records; never substitute the author's printer configuration.
 
-## 建立队伍
+## Create the team
 
-按 [可恢复配置流程](ONBOARDING.md) 检查宿主能力、查询已有聊天、预留缺少角色、调用宿主创建工具并读回首次介绍。用户已要求自动建队时，主 Agent 完成这段任务。新角色使用 Sarah 和 Mike，已有 Sara 入口可以直接接续。角色提示词与职责见 [角色说明](ROLES.md)。
+Follow [resumable onboarding](ONBOARDING.md): inspect host capabilities, find existing chats, reserve missing roles, call real host creation tools and read back the first introductions. When automatic team creation is part of the user's request, the main agent performs it. Use Sarah and Mike for new roles; continue an existing Sara entry. See [role prompts](ROLES.md).
 
-工作台“配置与队伍”展示实际介绍、共同资料和待办。`Context/onboarding.json` 保存创建证据，`Context/team.md` 保留用户的队伍说明。两个角色沿用主会话已收集的答案，只有真实缺项才继续询问。
+The workbench's configuration/team page displays actual introductions, shared records and pending work. `Context/onboarding.json` stores creation evidence, while `Context/team.md` retains the user's team description. Both roles reuse answers already collected by the main agent and ask only for missing facts.
 
-## 创建真实项目与分工
+## Create a real project and assignments
 
-先用 `./Harness/bin/printlab status` 查找是否已有对应作品。已有作品继续其 ID。新作品从用途、关键尺寸、外观和验收标准开始，未知事实保持待补充。
-
-```bash
-./Harness/bin/printlab new '桌边耳机挂钩' --kind functional --brief '用途为悬挂耳机，桌板厚度和载荷待使用者测量' --summary '桌边挂钩，先整理需求'
-```
-
-命令返回项目 ID 后，执行 `./Harness/bin/printlab context 项目ID`。根据返回的 `documents[].path` 找到以下文件并填写。
-
-- `brief.md` 保存需求、已知条件与待确认事项。
-- `decisions.md` 记录实际确认及出处。
-- `Review/team.md` 记录当前统筹、Sara 的材料/配件任务、Mike 的工具任务，以及实际产出与交接。
-- `Context/team.md` 记录这件作品对应的任务小组聊天入口。
-
-在工作台刷新项目图册，检查新项目及需求可见。为作品创建聊天需要使用者要求或当前创建队伍指令中的明确授权，聊天命名采用“任务小组 · 作品名称”。
-
-## 保存与验证交接
-
-在每轮结束运行以下命令，内容使用本轮事实。
+Use `./Harness/bin/printlab status` to find an existing object before creating another. Continue its ID if present. For a new object, establish purpose, critical dimensions, appearance and acceptance criteria; unknowns remain open.
 
 ```bash
-./Harness/bin/printlab handoff 项目ID --note '角色、当前版本、本轮完成、验证证据、用户确认、未解决项、下一步及相关路径'
-./Harness/bin/printlab context 项目ID
+./Harness/bin/printlab new 'Desk headphone hook' --kind functional --brief 'Hang headphones; desk thickness and load need user measurement' --summary 'Desk hook: establish requirements first'
 ```
 
-确认返回内容包含本轮交接和 `Review/team.md`。下一位 Agent 以相同工作空间和项目 ID 再运行 `context`，按 `latest_session` 指针继续。项目正式版本由当前统筹者维护，协作候选用独立目录，合入时重新核对来源和输出。
+After the command returns an ID, run `./Harness/bin/printlab context PROJECT_ID`. Use the returned `documents[].path` values to locate and fill:
 
-## 接入设计与打印工具
+- `brief.md`: requirements, known conditions and open questions.
+- `decisions.md`: actual decisions and their sources.
+- `Review/team.md`: coordinator, Sarah's materials/accessories work, Mike's tool work, outputs and handoffs.
+- `Context/team.md`: the object's task-group chat entry point.
 
-按照 [依赖说明](DEPENDENCIES.md) 阅读上游当前安装方法，在用户授权范围内从原作者渠道独立安装。分别记录工具版本、实际入口、检查结果和未完成项。
+Refresh the gallery and verify the project and requirements are visible. Creating its chat requires the user's request or explicit authorization within team setup. A suitable title is “Task group · Object name”.
 
-| 能力 | 必要条件 | 最小验证 |
+## Save and verify handoffs
+
+At the end of a session, use facts from that session:
+
+```bash
+./Harness/bin/printlab handoff PROJECT_ID --note 'Roles, current version, completed work, evidence, user decisions, open issues, next steps and relevant paths'
+./Harness/bin/printlab context PROJECT_ID
+```
+
+Confirm that the result includes the handoff and `Review/team.md`. The next agent uses the same workspace and project ID, reads `context` and follows `latest_session`. The current coordinator maintains the official project version; collaborators use separate candidate directories and recheck sources and outputs at integration.
+
+## Connect design and printing tools
+
+Read [dependencies and sources](DEPENDENCIES.md) and current upstream installation instructions. Install independently from original authors within the user's authorization. Record each tool's version, real entry point, verification result and remaining work.
+
+| Capability | Prerequisites | Minimum verification |
 | --- | --- | --- |
-| 概念图与选图 | 宿主可用的图像生成或使用者提供的参考图 | 能生成/读取图片并保存选择证据 |
-| CAD 与预览 | Text-to-CAD、适用的 CadQuery/Blender 环境 | 实际导出、单位/尺寸检查与预览 |
-| 材料与设备 | 独立 Bambuddy、用户设备和 API 凭据 | `status` 与 `materials` 读回正确设备和来源 |
-| 正式切片 | 官方 Bambu Studio 与本机配置 | 实际切片、板型/材料映射和时间用量检查 |
-| 发送助手 | 支持范围内的设备/Studio、助手和系统权限 | `studio-bridge capability` 返回实际结果 |
+| Concepts and selection | Available image-generation tools or user references | Generate/read images and preserve selection evidence |
+| CAD and previews | Text-to-CAD and a suitable CadQuery/Blender environment | Actual export, units/dimensions and preview |
+| Materials and devices | Independent Bambuddy, user equipment and API credentials | `status` and `materials` return the correct device and sources |
+| Final slicing | Official Bambu Studio and local profiles | Actual slice, plate/material mapping and time/usage checks |
+| Sending helper | Supported printer/Studio, helper and system permissions | Actual `studio-bridge capability` result |
 
-开始新外形前读取 `Context/image-to-print.md`，在记录用户选择时从 `Templates/Project/Review/design-target.json` 初始化项目对应文件，填写实际图片、哈希和选择。模型选择读取 `Context/agent-policy.json`，空值时使用用户当前可用的模型，并记录实际执行者。
+Before a new shape, read `Context/image-to-print.md`. Initialize the project's selection record from `Templates/Project/Review/design-target.json`, with real images, hashes and choices. Read model preferences from `Context/agent-policy.json`; if unset, use models currently available to the user and record the actual executor.
 
-首次设备接入遵循 [安装指南](SETUP.md)。实际打印按 [打印说明](PRINTING.md) 绑定具体文件、设备、材料与清板确认。
+Follow [setup](SETUP.md) for first device connections. Actual printing must bind the exact file, device, materials and clear-plate confirmation under [printing instructions](PRINTING.md).
 
-## 交付给使用者
+## Deliver the workspace
 
-报告实际工作空间、工作台地址与再次启动命令、已建立的角色入口、项目 ID 与当前阶段。分别列出工作台、项目接续、图像、CAD、切片、设备和打印的验证结果。为缺失能力写清具体下一步。验收依据包含真实命令结果、网页显示、文件与交接内容。
+Report the actual workspace path, workbench URL and restart command, created role entry points, project ID and current stage. Separately report verification of the workbench, continuation, images, CAD, slicing, device reads and printing. Give concrete next actions for missing capabilities. Evidence includes real command results, rendered pages, files and handoff content.
 
-连接模式与手机/电脑/Agent 的具体路径见 [连接与控制指南](CONNECTIONS.md)。
+See [connections and control](CONNECTIONS.md) for phone/computer/agent routes, and [CAD setup](CAD_SETUP.md) for pinned Text-to-CAD versions, Mac/Windows commands, host integration and a minimal modeling check.
 
-Text-to-CAD 的固定版本、Mac/Windows 安装命令、宿主接入和最小建模验收见 [CAD 安装指南](CAD_SETUP.md)。
+## Existing apps and account synchronization
 
-## 既有终端与账号同步
-
-安装先记录使用者正在使用的 Handy、Studio、Bambu Cloud 和 MakerWorld 功能，保留其账号登录、网络模式与现有凭据权限。为 PrintLab 新建专用读取凭据。用户需要云功能时，先说明 LAN Only / Developer Mode 的具体影响并确认所选路线。按 `docs/SYNC_TROUBLESHOOTING.md` 核对历史与收藏的实际来源及覆盖时间，核对原应用功能仍然可用。账号旧历史和 MakerWorld 收藏导入已排除在本轮开发范围外。已有档案缺图时，按 `docs/PREVIEW_RECOVERY.md` 使用 `printlab history-recover`，记录来源和恢复数量。
+Record the Handy, Studio, Bambu Cloud and MakerWorld features already in use. Preserve logins, network modes and existing credential scopes; create a dedicated read credential for PrintLab. Explain LAN Only / Developer Mode effects before a user who needs cloud features selects a route. Use [sync troubleshooting](SYNC_TROUBLESHOOTING.md) to check actual sources, coverage dates and existing-app functionality. Importing old account history and MakerWorld account collections remains outside the current scope. Recover missing archive images using `printlab history-recover` and [preview recovery](PREVIEW_RECOVERY.md), recording sources and counts.

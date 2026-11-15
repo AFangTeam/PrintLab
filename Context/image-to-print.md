@@ -1,21 +1,21 @@
-# 两次选图，再做真实模型
+# Two image selections, then a real model
 
-## 适用范围
+## Scope
 
-新设计和改变外形的改装默认采用本流程。已有选择接续使用，小幅尺寸、配色与局部修改按实际影响检查。
+Use this process by default for a new design or a shape-changing adaptation. Continue existing selections; assess small dimensional, color or local edits according to their impact.
 
-1. 明确用途、尺寸、设备与材料约束，提供可比较的单张外形方案。
-2. 用户选一款，保存所有候选、选中图片、提示词、来源、hash 和原话，列出必须保留的轮廓、曲面、开孔与比例。
-3. 围绕选定外形提供四套三视图，每套默认正、右、俯，统一坐标与比例。四套表达同一设计的空间解释，逐套检查不同方向和遮挡关系。
-4. 用户选一整套，保存 `Review/design-target.json` 中的两次选择。发现不一致时展示具体问题并修正。可用低细节空间草稿生成真实正交图，标注推定的背面与内部结构。
-5. 按选定目标建实际模型。原模型和实测尺寸约束配合接口，外形按已选目标推进。导出同源三视图、斜视与必要剖面，逐项检查偏差。
-6. 检查接口、孔位、公差、壁厚、装入路径与承力，必要时先做同源试模。图生网格作为外形候选处理。
-7. 确认配色和材料，建立正式 3MF，完成制作 Review、切片与当前打印确认，打印后检查实物。
+1. Establish purpose, dimensions, device and material constraints, then offer comparable single-image shape concepts.
+2. Let the user select one. Preserve all candidates, the chosen image, prompts, sources, hashes and original feedback. Identify silhouettes, surfaces, openings and proportions that must be retained.
+3. Provide four three-view sets of the selected shape, normally front, right and top, with consistent coordinates and scale. All sets represent the same design; inspect each set's orientations and occlusion.
+4. Let the user select a complete set and save both choices in `Review/design-target.json`. Show and resolve specific inconsistencies. A low-detail spatial draft may generate true orthographic views; label inferred rear/interior geometry.
+5. Build the actual model against the chosen target. Original models and measurements constrain mating interfaces; the selected target controls appearance. Export views, an oblique view and necessary sections from the same geometry and inspect deviations.
+6. Check interfaces, hole positions, tolerances, wall thickness, insertion paths and loads. Use a test piece derived from the same source where needed. Treat an image-generated mesh as a shape candidate.
+7. Confirm colors and materials, create the final 3MF, complete the manufacturing review and slicing, obtain current task-specific print confirmation, then inspect the physical result.
 
-## 改编已有模型
+## Adapting an existing model
 
-保存原件、作者、链接、版本、说明与许可。建立受保护配合面、孔位、公差、卡扣/滑槽和拆装路径清单，可改外形区域单独标注。每次修改检查保护区与真实接口。公开分享时再逐件核对原许可。
+Preserve the original, author, link, version, instructions and license. List protected mating surfaces, holes, tolerances, clips/rails and assembly/removal paths; identify editable exterior regions separately. Check protected regions and real interfaces after every revision. Recheck the original license before public sharing.
 
-## 命令与记录
+## Commands and records
 
-使用 `printlab design-check --help` 查看 input、views、release 检查参数。模板位于 `Templates/Project/Review/design-target.json`。检查关联的文件、来源和 hash 后，仍要实际查看模型。选型历史通过 `printlab taste record` 保存，经验写入 `Context/taste.md`。
+Use `printlab design-check --help` for input, views and release checks. The template is `Templates/Project/Review/design-target.json`. Checking files, sources and hashes does not replace viewing the actual model. Record selection history with `printlab taste record` and lessons in `Context/taste.md`.

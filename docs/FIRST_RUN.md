@@ -1,25 +1,25 @@
-# 第一次配置：先了解你的机器
+# First setup: understand the user's printer
 
-由首次安装 Agent 按 [可恢复配置流程](ONBOARDING.md) 读取已有配置，已有明确答案不重复询问。优先自动发现设备与材料，访谈补齐真实缺项，不能用作者的设备配置填空。
+The onboarding agent follows [resumable onboarding](ONBOARDING.md), reading existing configuration before asking questions. Discover devices and materials where possible; ask only for missing facts. Never fill gaps with the author's equipment configuration.
 
-1. 使用 Mac 还是 Windows？Agent 是否能执行本机命令、读写文件、操作桌面？工作台准备长期放在哪个目录？
-2. 打印机准确型号、固件版本，已装喷嘴直径和类型、打印板、AMS 数量与接线、外挂和 FTS 情况。
-3. 现有材料的种类、颜色、具体产品、已装槽位；未知余量保持未知。是否有可用的专用支撑材料？
-4. 电脑和打印机能否在同一网络通信？目前用云连接还是 LAN Only？是否已使用 Bambu Studio、Bambuddy？是否需要保留 Handy 云打印、账号历史和 MakerWorld 收藏？现有账号使用国内站还是国际站？
-5. 常做的物品、尺寸/强度/表面优先级、是否接受配件、多色耗时与耗料，以及支撑材料偏好。
+1. Mac or Windows? Can the agent run local commands, read/write files and control the desktop? Where should the persistent workspace live?
+2. Exact printer model and firmware, installed nozzle diameter/type, plate, AMS count/connections, external spool and FTS configuration.
+3. Owned material types, colors, specific products and loaded slots. Unknown remaining quantities stay unknown. Is dedicated support filament available?
+4. Can the computer and printer communicate on the same network? Cloud or LAN Only? Are Studio/Bambuddy already in use? Must Handy cloud printing, account history and MakerWorld collections remain usable? Is the account on the mainland-China or international service?
+5. Typical objects; dimension/strength/surface priorities; acceptance of extra accessories; multicolor time/material costs; support-material preferences.
 
-把设备事实写入 `Library/Devices/X2D/device.json`（沿用历史路径，内容填写自己的型号），工具版本及验证写入 `installed.md`，偏好写入 `Context/profile.md`。未知字段不写成已验证。IP、访问码和 API key 仅保存在本机受限配置中，不写入共享文档。
+Save device facts in `Library/Devices/X2D/device.json` (a legacy path, not an assumed model), tool versions/checks in `installed.md`, and preferences in `Context/profile.md`. Do not mark unknowns as verified. Keep IP addresses, access codes and API keys in restricted local configuration, not shared documents.
 
-任务小组开始每件作品时读取同一设备与材料记录，并重新读实时状态。当前自动发送适配仍是 PRINTING.md 的特定 X2D/Mac 组合；填入其他机型并不会自动获得切片与发送支持。
+Each task group reads the same device/material records and rereads live status. Check current model/feeding support with `dispatch-plan` and `PRINTING.md`; the dedicated Mac Studio sending helper has a specific X2D/Studio scope, and eligible Bambuddy routes have their own constraints. Entering another model in the device card does not establish support. A1 external-spool automatic dispatch remains unadapted.
 
-先记录已有网络模式、云登录、同步与 API key 的使用者。安装工作台时沿用已有可用功能。需要更改网络模式或授权范围时，先说明会影响的具体功能并取得使用者选择。历史与收藏验收按 [同步排查](SYNC_TROUBLESHOOTING.md) 核对真实记录。
+Record existing network mode, cloud login, synchronization and credential consumers. Preserve working features during installation. Explain concrete effects and obtain the user's choice before changing network mode or authorization scope. Check history/collection coverage using [sync troubleshooting](SYNC_TROUBLESHOOTING.md).
 
-## 每件作品的制造判断
+## Manufacturing decisions for each object
 
-先确定用途、关键尺寸和验收标准。新外形按 `Context/image-to-print.md` 选方案和同款视图；功能件按 `Context/cad-master-design.md` 保护接口，试模与整件使用同一源几何。小改动接续已确认决定。
+Establish purpose, critical dimensions and acceptance criteria first. For a new shape, use `Context/image-to-print.md` to select a concept and matching views. Protect functional interfaces under `Context/cad-master-design.md`; tests and finished parts share source geometry. Small changes retain confirmed decisions.
 
-最终 Review 比较摆放方向、分件/分盘、材料、支撑、喷嘴分工和换色开销，计入所有盘、启动、冲刷、换盘及后处理。优先质量和可靠性，不以减少壁厚或提高速度代替工程判断。专用支撑是否适合由本机供料能力、材料兼容性和使用者偏好共同决定，不能照搬作者的双喷设置。
+The final review compares orientation, part/plate splits, materials, supports, nozzle roles and color-change overhead, including all plates, startup, flushing, plate changes and post-processing. Prioritize quality and reliability; thinner walls or higher speeds do not replace engineering judgment. Dedicated supports depend on the actual feeding system, material compatibility and user preferences, not the author's dual-nozzle setup.
 
-## 首次验收记录
+## Initial verification record
 
-分别记录工作台、CAD、切片、设备读取、发送助手的版本、实际命令、结果和缺口。没有实际执行的步骤写“未验证”；模拟设备通过写“模拟验证”。安装、建模和验收不授权实体打印。
+Record versions, real commands, results and gaps for the workbench, CAD, slicing, device reads and sending helper separately. Mark unexecuted steps as unverified and synthetic-device checks as simulated. Installation, modeling and verification do not authorize physical printing.

@@ -1,4 +1,13 @@
-# 验证记录
+# Verification records
+
+## v0.4.4 English-first documentation
+
+This release changes the default README, primary video link and core installation/agent documentation to English, with a separate Chinese README and compatibility link for the former English path. `docs/LANGUAGE.md` describes the remaining Chinese UI, generated messages, detailed references and templates. Runtime behavior and device/OCR strings are unchanged; executable-source changes are limited to version metadata.
+
+Local setup and the production web build passed. Python: 483 passed, 12 environment-dependent skips and 9 subtests passed. Node: 12 passed. Independent-process onboarding passed all five checks. Cross-platform results and the final source/ZIP hashes are attached to the corresponding GitHub release; verify them for the revision being installed.
+
+No printer was contacted for these documentation checks. A1 external-spool automatic dispatch remains unadapted. Windows Server CI does not establish Windows 10/11 desktop or physical-printer acceptance. Earlier verification entries below retain their original language and historical scope.
+
 
 ## v0.4.0 个性化工作流与发送准备
 
