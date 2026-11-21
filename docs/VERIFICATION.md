@@ -1,5 +1,11 @@
 # Verification records
 
+## v0.5.0 workbench project deletion
+
+The browser check creates two projects in a temporary workspace and opens the target from the project gallery. It cancels once, attempts deletion during an active workbench operation, then confirms after that operation ends. It checks the actual project directory, the original source outside the project, the sibling project's metadata and the gallery after a reload. Both desktop and narrow-screen layouts are exercised. Run `scripts/verify_browser.py` after setup with Playwright and Chromium installed.
+
+`Harness/tests/test_project_delete.py` covers the HTTP confirmation, project identity, active jobs, shared data, concurrent changes and retry after interrupted file cleanup. The release ZIP installation check also runs the deletion tests in a new workspace. Hardware is outside the scope of these checks.
+
 ## v0.4.4 English-first documentation
 
 This release changes the default README, primary video link and core installation/agent documentation to English, with a separate Chinese README and compatibility link for the former English path. `docs/LANGUAGE.md` describes the remaining Chinese UI, generated messages, detailed references and templates. Runtime behavior and device/OCR strings are unchanged; executable-source changes are limited to version metadata.

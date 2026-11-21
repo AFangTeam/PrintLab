@@ -124,6 +124,16 @@ def project_path(pid: str):
     return p
 
 
+@contextlib.contextmanager
+def project_write_lock(project):
+    """A writer waiting behind deletion must never recreate the project tree."""
+    project_id = project.name.split("-", 1)[0]
+    with lock(project_id):
+        if project_path(project_id) != project or read_json(project / "project.json", {}).get("id") != project_id:
+            raise WorkflowError("The selected project changed before writing")
+        yield project_id
+
+
 def public_project_file(pid, rel):
     p = project_path(pid)
     first = Path(rel).parts[0] if Path(rel).parts else ""
@@ -232,6 +242,20 @@ def detail(pid):
     return data
 
 
+def project_id_floor():
+    path = safe_path(ROOT, "Project/.id-high-water.json", require_file=False)
+    value = read_json(path, 0)
+    if type(value) is not int or value < 0:
+        raise WorkflowError("Project ID counter is invalid")
+    return value
+
+
+def reserve_project_id(number):
+    # Caller holds the workflow lock across allocation or deletion.
+    if number > project_id_floor():
+        write_json(ROOT / "Project/.id-high-water.json", number)
+
+
 def new_project(name, kind="functional", brief="", summary_text=""):
     if kind not in {"functional", "sculpture"}:
         raise WorkflowError("Invalid project kind")
@@ -240,7 +264,8 @@ def new_project(name, kind="functional", brief="", summary_text=""):
         raise WorkflowError("Project name required")
     with lock():
         ids = [int(p["id"][1:]) for p in list_projects()]
-        pid = f"P{max(ids, default=0) + 1:03}"
+        number = max(project_id_floor(), max(ids, default=0)) + 1
+        pid = f"P{number:03}"
         p = ROOT / "Project" / f"{pid}-{slug}"
         p.mkdir(parents=True, exist_ok=False)
         for d in PROJECT_DIRS:
@@ -346,12 +371,12 @@ def build(pid, revision, engine):
     envelope = constraints.build_envelope(pid)
     command = [python, str(Path(__file__).resolve().parents[1] / "build_model.py"), "--project", str(p),
                "--revision", revision, "--engine", engine, '--build-envelope', json.dumps(envelope)]
-    with lock(read_json(p / "project.json")["id"]):
+    with project_write_lock(p) as project_id:
         if out.exists():
             raise WorkflowError("Built revisions are immutable; create a new revision")
         result = subprocess.run(command, capture_output=True, text=True, timeout=600,
                                 env={**os.environ, 'PRINTLAB_ROOT': str(ROOT)})
-        evidence = ROOT / "Runtime/evidence" / f"{pid}-{revision}-build.log"
+        evidence = ROOT / "Runtime/evidence" / f"{project_id}-{revision}-build.log"
         evidence.parent.mkdir(parents=True, exist_ok=True)
         evidence.write_text(result.stdout + "\n" + result.stderr, encoding="utf-8")
         if result.returncode != 0 or not out.exists():
@@ -545,7 +570,7 @@ def slice_project(pid, machine, process, filaments, revision=None, plate=1, mapp
     slicer = config().get("slicer_path", platforms.tool_defaults()["slicer_path"])
     if not Path(slicer).is_file():
         raise WorkflowError("Bambu Studio executable not available")
-    with lock(read_json(p / "project.json")["id"]):
+    with project_write_lock(p):
         validate_build_lineage(p, revision, manifest)
         jid = "J" + dt.datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:6]
         jd = p / "Print" / jid
@@ -719,6 +744,17 @@ def approve(pid, jid, confirmation="", plate_clear=False, confirmation_event_id=
         return receipt
 
 
+def has_terminal_observation(directory, receipt):
+    observation = read_json(directory / "observation.json", {})
+    queue = observation.get("queue", {})
+    if (receipt.get("queue_id") is not None and queue.get("id") == receipt["queue_id"]
+            and queue.get("status") in {"failed", "cancelled", "completed"}):
+        return True
+    native = read_json(directory / "native-observation.json", {})
+    return (native.get("matching_task") is True and native.get("fresh") is True
+            and native.get("device", {}).get("state") in {"FAILED", "FINISH", "CANCELLED"})
+
+
 def retry_job(pid, jid, note, mapping=None):
     """Prepare a new attempt from exact sliced bytes; never approves or submits."""
     if not isinstance(note, str) or not note.strip():
@@ -738,16 +774,8 @@ def retry_job(pid, jid, note, mapping=None):
                 if read_json(path, {}).get("state") in active:
                     raise WorkflowError("Another active or uncertain attempt must be reconciled before preparing a retry")
         receipt = read_json(old_dir / "dispatch.json", {})
-        if receipt.get("state") == "unknown":
-            observation = read_json(old_dir / "observation.json", {})
-            native_observation = read_json(old_dir / "native-observation.json", {})
-            queue = observation.get("queue", {})
-            queue_failed = (receipt.get("queue_id") is not None and queue.get("id") == receipt["queue_id"]
-                            and queue.get("status") in {"failed", "cancelled", "completed"})
-            native_finished = (native_observation.get("matching_task") is True and native_observation.get("fresh") is True
-                               and native_observation.get("device", {}).get("state") in {"FAILED", "FINISH", "CANCELLED"})
-            if not queue_failed and not native_finished:
-                raise WorkflowError("Unknown dispatch has no matching terminal observation; no retry prepared")
+        if receipt.get("state") == "unknown" and not has_terminal_observation(old_dir, receipt):
+            raise WorkflowError("Unknown dispatch has no matching terminal observation; no retry prepared")
         original_fingerprint = job_fingerprint(p, old_dir, old)
         from . import slicer_guard
         slicer_guard.assert_safe_archive(safe_path(old_dir, old['artifact']), old.get('plate', 1))
@@ -790,8 +818,8 @@ def review(pid, note, outcome):
         raise WorkflowError("Review outcome must be passed, failed, or needs_changes")
     if not note.strip():
         raise WorkflowError("A physical review note is required")
-    with lock(pid):
-        p = project_path(pid)
+    p = project_path(pid)
+    with project_write_lock(p):
         data = read_json(p / "project.json")
         if data.get("status") == "archived":
             raise WorkflowError("Archived projects remain archived; explicitly reopen before review")
@@ -810,7 +838,7 @@ def handoff(pid, note):
     if not note.strip():
         raise WorkflowError("Handoff text is required")
     p = project_path(pid)
-    with lock(read_json(p / "project.json")["id"]):
+    with project_write_lock(p):
         stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:8]
         path = p / "Sessions" / f"{stamp}.md"
         with path.open("x", encoding="utf-8") as f:

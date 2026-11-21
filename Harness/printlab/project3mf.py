@@ -101,7 +101,7 @@ def export(pid, revision, machine, process, filaments, bed_type):
     if output.exists() or receipt.exists():
         raise core.WorkflowError('Native project already exists; create a new revision')
     temporary = out_dir / '.bambu-project-building.3mf'
-    with core.lock(core.read_json(p / 'project.json')['id']):
+    with core.project_write_lock(p):
         if output.exists() or receipt.exists():
             raise core.WorkflowError('Native project already exists; create a new revision')
         core.validate_build_lineage(p, revision, manifest)

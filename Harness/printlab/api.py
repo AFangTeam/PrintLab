@@ -5,12 +5,14 @@ from contextlib import asynccontextmanager, suppress
 import asyncio
 import logging
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from pydantic import BaseModel, ConfigDict
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import __version__, bambuddy, core, shop, history
-from .prepared_api import router as prepared_router
+from .prepared_api import router as prepared_router, _session
+from . import project_delete
 
 @asynccontextmanager
 async def lifespan(app):
@@ -66,7 +68,7 @@ async def security_headers(request, call_next):
 @app.get("/api/health")
 def health():
     return {"ok": True, "version": __version__, "read_only": False,
-            "features": ["native-observation-v2", "material-slots-v2", "confirmation-card", "traceable-retry", "print-history-v1", "prepared-print-v1"]}
+            "features": ["native-observation-v2", "material-slots-v2", "confirmation-card", "traceable-retry", "print-history-v1", "prepared-print-v1", "project-delete-v1"]}
 
 
 @app.get('/api/history')
@@ -91,6 +93,25 @@ def projects():
 @app.get("/api/projects/{pid}")
 def project(pid: str):
     return core.detail(pid)
+
+
+class DeleteProject(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    confirm_id: str
+
+
+@app.delete("/api/projects/{pid}")
+def delete_project(pid: str, body: DeleteProject, request: Request):
+    _session(request, write=True)
+    try:
+        return project_delete.delete(pid, body.confirm_id, studio_origin=str(request.base_url).rstrip('/'))
+    except project_delete.ProjectMissing as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except core.WorkflowError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
+        logging.getLogger("printlab").exception("Project %s cleanup failed", pid)
+        raise HTTPException(409, '清理未完成，请检查文件占用、工作区权限和本地记录后重试') from exc
 
 
 @app.get("/api/projects/{pid}/confirmation")

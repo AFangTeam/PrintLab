@@ -111,8 +111,7 @@ def view(pid, inventory=None):
 def capture(pid, source, expected_sha256, inventory=None):
     source = workspace.required_text(source, 'Design context source')
     project = core.project_path(pid)
-    project_id = core.read_json(project / 'project.json')['id']
-    with core.lock(project_id):
+    with core.project_write_lock(project):
         path = core.safe_path(project, CONTRACT, require_file=False)
         workspace.check_version(path, expected_sha256)
         facts = current(pid, inventory)

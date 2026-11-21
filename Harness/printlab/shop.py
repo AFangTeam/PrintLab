@@ -45,6 +45,8 @@ def change(expected, action, callback):
         data = load()
         if type(expected) is not int or data["version"] != expected:
             raise core.WorkflowError("Shop List changed; read shop list and merge against its current version")
+        if action.get("project_id"):
+            project_id(action["project_id"])
         callback(data)
         data["version"] += 1
         data["updated_at"] = core.now()

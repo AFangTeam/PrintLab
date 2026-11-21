@@ -153,6 +153,7 @@ def register(pid, jid, *, title=None, parts=None, note=None):
     if note is not None and (not isinstance(note, str) or len(note) > 1000):
         raise core.WorkflowError('备注过长')
     with core.lock('prepared-catalogue'):
+        core.project_path(pid)
         data = _registry()
         prior = next((r for r in data['items'] if r.get('project_id') == pid and r.get('job_id') == jid), {})
         entry = {'project_id': pid, 'job_id': jid, 'revision': job['revision'],

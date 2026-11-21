@@ -33,3 +33,22 @@
 .favorites-page .filter-tabs{flex-wrap:wrap}.favorites-page .filter-tabs button{font-size:16px;min-height:48px}.favorites-page .search-box{min-height:48px}.favorites-page .search-box input{font-size:16px}
 @media(max-width:1200px){.favorites-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:640px){.favorites-grid{grid-template-columns:1fr}.favorite-cover{height:280px}.favorite-copy{padding:24px}.favorites-page .page-heading p{font-size:16px}.favorites-page .collection-toolbar{gap:16px}.favorites-page .page-heading{gap:16px}.favorites-page .search-box{max-width:none}}
+
+/* Loading and empty overlays belong inside the viewer's own box. */
+.model-viewer:is(.model-loading, .model-empty) {position: relative}
+.project-actions {display: grid; justify-items: end; gap: 8px}
+.delete-project-dialog {width: min(480px, calc(100% - 32px)); color: var(--text); overflow-wrap: anywhere; overscroll-behavior: contain}
+.delete-project-dialog::backdrop {background: #0d1a1480}
+html:has(.delete-project-dialog:modal) {overflow: hidden}
+.delete-project-dialog p {color: var(--text)}
+.delete-project-name {margin: 16px 0 8px}
+.delete-project-buttons {display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px}
+.delete-project-confirm {background: #a13431; color: white}
+.delete-project-confirm:hover:not(:disabled) {background: #852b28}
+.delete-project-dialog .delete-project-error {margin-top: 12px; color: #9c302c}
+[data-theme=dark] .delete-project-error {color: #ffb3aa}
+.project-deleted-notice {display: flex; align-items: center; gap: 8px; margin-bottom: 20px; color: var(--accent)}
+@media (max-width: 640px) {
+  .project-actions .updated-note {display: none}
+  .project-actions .button {padding-inline: 12px}
+}

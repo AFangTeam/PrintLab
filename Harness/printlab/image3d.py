@@ -47,6 +47,11 @@ def generate(project, reference, candidate, crop, height_mm, steps, resolution, 
     if not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,79}", candidate):
         raise core.WorkflowError("Candidate must use lowercase letters, digits, _ or - (max 80 characters)")
     pp = core.project_path(project)
+    with core.project_write_lock(pp) as project_id:
+        return _generate(project_id, pp, reference, candidate, crop, height_mm, steps, resolution, seed, quantize)
+
+
+def _generate(project, pp, reference, candidate, crop, height_mm, steps, resolution, seed, quantize):
     ref = core.safe_path(pp, reference)
     from . import design
     design.require_if_configured(project, "input", reference=reference)

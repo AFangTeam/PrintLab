@@ -2,12 +2,12 @@ import React,{lazy,Suspense,useEffect,useRef,useState} from 'react';
 import {Box,CheckCircle2,AlertCircle,Clock3,RefreshCw,Printer} from 'lucide-react';
 import {estimateDuration,estimateWeight,materialDisplayColor} from './presentation';
 const ModelViewer=lazy(()=>import('./ModelViewer'));
+import {requestJson as json} from './request-json';
 import './prepared.css';
 
 const arr=x=>Array.isArray(x)?x:[];
 function requestId(){if(globalThis.crypto?.randomUUID)return globalThis.crypto.randomUUID();if(!globalThis.crypto?.getRandomValues)throw Error('浏览器不支持安全随机数，无法启动');const bytes=crypto.getRandomValues(new Uint8Array(16));bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;const hex=Array.from(bytes,x=>x.toString(16).padStart(2,'0')).join('');return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;}
 const path=(p,j)=>`/api/prepared/${encodeURIComponent(p)}/${encodeURIComponent(j)}`;
-async function json(url,options){const response=await fetch(url,{cache:'no-store',...options});let data={};try{data=await response.json()}catch{}if(!response.ok)throw new Error(data.detail||data.message||data.error||`请求失败 (${response.status})`);return data}
 const sameOriginUrl=value=>{if(!value)return null;try{const u=new URL(value,location.origin);return u.origin===location.origin?u.href:null}catch{return null}};
 const detail=x=>typeof x==='string'?x:(x?.message||x?.label||x?.name||'待核实');
 

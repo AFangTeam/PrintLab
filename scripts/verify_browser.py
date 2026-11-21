@@ -14,9 +14,66 @@ import tempfile
 import time
 import urllib.request
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def verify_project_deletion(page, base, workspace, project, sibling, output):
+    def directory(item):
+        return workspace / 'Project' / f"{item['id']}-{item['slug']}"
+
+    target = directory(project)
+    original = workspace / 'original.stl'
+    original.write_bytes(b'solid original\nendsolid original\n')
+    imported = target / 'Sources' / 'project-only-copy.stl'
+    shutil.copyfile(original, imported)
+    source = original.read_bytes()
+    sibling_metadata = directory(sibling) / 'project.json'
+    sibling_before = sibling_metadata.read_bytes()
+
+    page.goto(base + '/#/projects')
+    page.get_by_role('heading', name=project['name'], exact=True).click()
+    delete = page.get_by_role('button', name='删除项目', exact=True)
+    delete.click()
+    dialog = page.get_by_role('dialog')
+    expect(dialog).to_contain_text(project['name'])
+    expect(dialog).to_contain_text(project['id'])
+    cancel = dialog.get_by_role('button', name='取消', exact=True)
+    expect(cancel).to_be_focused()
+    dialog.screenshot(path=str(output / 'delete-project-confirmation.png'), animations='disabled')
+    cancel.click()
+    expect(dialog).not_to_be_visible()
+    assert imported.read_bytes() == source
+
+    desktop = page.viewport_size
+    page.set_viewport_size({'width': 390, 'height': 844})
+    # Emulate another local tab already checking a job. No printer is configured.
+    operation = workspace / 'Runtime/workbench/operations' / ('a' * 32 + '.json')
+    operation.parent.mkdir(parents=True, exist_ok=True)
+    operation.write_text(json.dumps({'project_id': project['id'], 'state': 'checking'}),
+                         encoding='utf-8')
+    delete.click()
+    confirm = dialog.get_by_role('button', name='永久删除', exact=True)
+    confirm.click()
+    expect(dialog.get_by_role('alert')).to_contain_text('暂时无法删除')
+    assert imported.read_bytes() == source
+    operation.unlink()
+    confirm.click()
+    page.wait_for_url(base + '/#/projects')
+    expect(page.get_by_role('status')).to_contain_text(project['name'])
+    sibling_card = page.get_by_role('heading', name=sibling['name'], exact=True)
+    target_card = page.get_by_role('heading', name=project['name'], exact=True)
+    expect(sibling_card).to_be_visible()
+    expect(target_card).to_have_count(0)
+    assert not target.exists()
+    assert not list(workspace.rglob(imported.name)), 'Project source still on disk'
+    assert original.read_bytes() == source
+    assert sibling_metadata.read_bytes() == sibling_before
+    page.reload()
+    expect(sibling_card).to_be_visible()
+    expect(target_card).to_have_count(0)
+    page.set_viewport_size(desktop)
 
 
 def main():
@@ -35,6 +92,8 @@ def main():
         created = subprocess.check_output([*command, 'new', 'Windows 中文工作流验收',
                                           '--brief', '验证用途与尺寸记录'], env=environment)
         project = json.loads(created)
+        disposable = json.loads(subprocess.check_output(
+            [*command, 'new', '待删除的临时作品'], env=environment))
         # Synthetic recovered images exercise the real document route and Gallery rendering.
         preview_dir = workspace / 'Library/References/PrintHistory/CloudPreviews'
         preview_dir.mkdir(parents=True)
@@ -105,6 +164,7 @@ def main():
                 page.get_by_role('heading', name='Windows 中文工作流验收', exact=True).wait_for()
                 assert '验证用途与尺寸记录' in page.locator('main').inner_text()
                 page.screenshot(path=str(output / 'project-desktop.png'), full_page=True, animations='disabled')
+                verify_project_deletion(page, base, workspace, disposable, project, output)
                 page.goto(base + '/#/prepared')
                 if sys.platform == 'win32':
                     page.get_by_role('heading', name='Windows 发送通道').wait_for()
@@ -122,6 +182,7 @@ def main():
                 browser.close()
             result = {'ok': True, 'os': platform.platform(), 'python': sys.version,
                       'pages': checked, 'unicode_project': True, 'recovered_preview_images': 3, 'browser_errors': failures,
+                      'project_delete': 'cancelled, blocked while busy, confirmed, verified on disk and after reload',
                       'printing': 'synthetic data only'}
             (output / 'browser.json').write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding='utf-8')
             print(json.dumps(result, ensure_ascii=False))

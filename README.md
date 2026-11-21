@@ -72,7 +72,7 @@ PrintLab provides context through files and commands. Available models and tools
 
 ## The workbench
 
-- Project gallery, 3D model previews, and design revisions.
+- Project gallery, 3D model previews, and design revisions. Open a project and choose **删除项目** to delete its local folder, prepared entries, and shopping requirements. The workbench shows the project name and ID before asking for permanent deletion.
 - Device status, filament inventory, and captured print history from Bambuddy.
 - Reference collections, personal preferences, and image-selection records.
 - Shared parts lists, stock, and purchasing records.

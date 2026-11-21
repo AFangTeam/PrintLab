@@ -52,6 +52,12 @@ def capability(report):
     return {'available': False, 'kind': kind, 'message': '这个打印包尚未准备独立发送通道'}
 
 def check(pid, jid, *, owner=None):
+    if owner:
+        with core.lock('workbench-start'):
+            return _check(pid, jid, owner)
+    return _check(pid, jid, None)
+
+def _check(pid, jid, owner):
     result = prepared.check(pid, jid)
     transport = capability(result)
     result['transport'].update(transport)

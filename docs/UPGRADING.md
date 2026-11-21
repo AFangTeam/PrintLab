@@ -38,6 +38,12 @@ Confirm target paths before actual restoration. Stop Bambuddy before restoring i
 
 Use the repository issue form with OS, release, redacted errors and reproduction steps. Keep credential files local.
 
+## v0.5.0 project deletion
+
+After upgrading and restarting the workbench, open **项目图册** (Projects), select a project, and choose **删除项目** (Delete project). Check the name and ID in the dialog. **取消** cancels. **永久删除** permanently removes the local project folder, including source copies, models, slices and session notes. It also removes the project from the prepared shelf and shared shopping requirements. Close open project files if the operating system reports they are in use, then retry.
+
+Resolve any active or uncertain print for the project first so its dispatch record remains available for reconciliation. The printer's recorded history, shared stock and image-choice archive are retained. Original files stored outside the project and existing backups are independent copies.
+
 ## v0.4.4: English-first documentation
 
 The default README and core installation/agent guides are now in English. Chinese remains available in `README.zh-CN.md`, and old `README.en.md` links still work. YouTube is the primary walkthrough link. Existing private project data, UI text and device-control behavior are unchanged. Merge any customized instructions deliberately; do not replace user records to change their language. See [language coverage](LANGUAGE.md).

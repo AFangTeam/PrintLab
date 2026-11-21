@@ -154,3 +154,24 @@ def test_history_api_has_no_write_route(monkeypatch):
     client = TestClient(app)
     assert client.get('/api/history').json() == {'items': [], 'stale': False}
     assert client.post('/api/history').status_code == 405
+
+
+def test_detach_deleted_project_preserves_offline_print_history(tmp_path, monkeypatch):
+    monkeypatch.setattr(core, 'ROOT', tmp_path)
+    path = tmp_path / 'Runtime/history/latest.json'
+    photo = '/api/documents/Library/References/PrintHistory/photo.png'
+    sibling = {'project_id': 'P002', 'origin': 'linked_project', 'is_print_event': True}
+    core.write_json(path, {'updated_at': 'original time', 'counts': {'prints': 2}, 'items': [
+        {'project_id': 'P001', 'project_name': 'Example', 'origin': 'linked_project',
+         'is_print_event': True, 'archive_photo_url': photo},
+        {'project_id': 'P001', 'origin': 'linked_project', 'is_print_event': False}, sibling]})
+    with core.lock('print-history'):
+        history.detach_project('P001')
+        history.detach_project('P001')
+    result = core.read_json(path)
+    assert result['counts'] == {'prints': 2, 'linked': 1, 'external': 1}
+    assert result['updated_at'] == 'original time'
+    event, archive, other = result['items']
+    assert event['project_id'] is None and event['project_name'] is None
+    assert event['origin'] == archive['origin'] == 'external'
+    assert event['archive_photo_url'] == photo and other == sibling

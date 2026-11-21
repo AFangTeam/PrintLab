@@ -11,14 +11,12 @@ import io
 import os
 import tempfile
 import re
-import threading
 import zipfile
 
 import httpx
 
 from . import bambuddy, core
 
-_lock = threading.Lock()
 PAGE_SIZE = 100
 MAX_PAGES = 100
 
@@ -206,9 +204,33 @@ def combine(archives, runs, jobs):
     return sorted(items, key=lambda r: r['started_at'] or r['created_at'] or '', reverse=True)
 
 
+def detach_project(project_id):
+    """Keep captured printer events after project deletion, including offline.
+
+    The caller holds the print-history lock through removal of the project.
+    """
+    relative = 'Runtime/history/latest.json'
+    cache_path = core.safe_path(core.ROOT, relative, require_file=False)
+    if cache_path != core.ROOT / relative:
+        raise core.WorkflowError('历史缓存目录已重定向，无法安全清理')
+    cached = core.read_json(cache_path, {})
+    items = cached.get('items', [])
+    linked = [row for row in items if row.get('project_id') == project_id]
+    if not linked:
+        return
+    for row in linked:
+        row.update(project_id=None, project_name=None, origin='external')
+    events = [row for row in items if row.get('is_print_event')]
+    cached.setdefault('counts', {}).update(
+        linked=sum(row.get('origin') == 'linked_project' for row in events),
+        external=sum(row.get('origin') == 'external' for row in events),
+    )
+    core.write_json(cache_path, cached)
+
+
 def view(force=False, client_factory=None):
     cache_path = core.ROOT / 'Runtime/history/latest.json'
-    with _lock:
+    with core.lock('print-history'):
         cached = core.read_json(cache_path, {})
         pid = core.config().get('printer_id')
         if type(pid) is not int:

@@ -29,7 +29,7 @@ def template():
 def init(pid, kind="unknown"):
     p = core.project_path(pid)
     path = core.safe_path(p, RECORD, require_file=False)
-    with core.lock(core.read_json(p / "project.json")["id"]):
+    with core.project_write_lock(p):
         if path.exists():
             record = core.read_json(path)
             if not isinstance(record, dict) or record.get('schema_version') != 1:
@@ -282,7 +282,7 @@ def check(pid):
 def prepare(pid):
     """Create an immutable review packet even when evidence is missing; no upload."""
     p = core.project_path(pid)
-    with core.lock(core.read_json(p / "project.json")["id"]):
+    with core.project_write_lock(p):
         result = check(pid)
         if result["status"] == "not_requested":
             raise core.WorkflowError("No public upload requested; local designs do not need a release packet")

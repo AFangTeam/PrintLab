@@ -42,7 +42,7 @@ def _session(request, *, write=False):
     if not row or time.time() - row['at'] > 43200:
         raise HTTPException(403, '会话已过期，请刷新工作台')
     if write and (not origin or not secrets.compare_digest(request.headers.get('x-printlab-csrf', ''), row['csrf'])):
-        raise HTTPException(403, '请从工作台核验并确认打印')
+        raise HTTPException(403, '请刷新工作台后重试')
     return sid
 
 @router.get('')
