@@ -1,5 +1,7 @@
 """Exercise deletion through the real HTTP route with disposable workspace data."""
 from concurrent.futures import ThreadPoolExecutor
+import os
+import subprocess
 from threading import Event
 
 from fastapi.testclient import TestClient
@@ -155,6 +157,25 @@ def test_symlinks_do_not_expand_the_deleted_tree(workspace):
     linked_parent.rename(root / 'Project')
     assert delete(client, headers).status_code == 200
     assert sentinel.read_bytes() == b'keep'
+
+
+@pytest.mark.skipif(os.name != 'nt', reason='NTFS directory junction requires Windows')
+def test_delete_unlinks_windows_junction_without_touching_its_target(workspace):
+    root, client, headers = workspace
+    core.new_project('With junction')
+    folder = core.project_path('P001')
+    library = root / 'Shared model library'
+    library.mkdir()
+    original = library / 'original.3mf'
+    original.write_bytes(b'keep shared geometry')
+    junction = folder / 'Borrowed files'
+    subprocess.run(['cmd.exe', '/d', '/c', 'mklink', '/J', str(junction), str(library)],
+                   check=True, capture_output=True)
+    assert (junction / original.name).read_bytes() == original.read_bytes()
+    response = delete(client, headers)
+    assert response.status_code == 200, response.text
+    assert not folder.exists()
+    assert original.read_bytes() == b'keep shared geometry'
 
 
 @pytest.mark.parametrize('project_status', ['designing', 'printing'])

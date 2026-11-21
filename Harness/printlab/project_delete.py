@@ -4,6 +4,7 @@ from pathlib import Path
 import os
 import re
 import shutil
+import stat
 import tempfile
 
 from . import bambuddy, core, history, prepared, shop
@@ -128,17 +129,17 @@ def _detach_catalogues(pid, studio_origin):
 
 
 def _check_mounts(folder):
-    # rmtree leaves symlinks and Windows junction targets intact, but can
-    # descend into mounted volumes on POSIX. Never delete across a mount.
+    # Check volume mounts before skipping links: Windows directory junctions
+    # and mounted folders both use the mount-point reparse tag.
     if os.path.ismount(folder):
         raise core.WorkflowError('目录是挂载的磁盘，无法安全删除')
     for base, dirs, _ in os.walk(folder, followlinks=False):
         for name in dirs.copy():
             child = Path(base) / name
+            if os.path.ismount(child):
+                raise core.WorkflowError('项目目录中包含挂载的磁盘，请先卸载后重试')
             if child.is_symlink() or child.resolve() != child:
                 dirs.remove(name)
-            elif os.path.ismount(child):
-                raise core.WorkflowError('项目目录中包含挂载的磁盘，请先卸载后重试')
 
 
 def _remove_caches(pid, project):
@@ -171,7 +172,12 @@ def _remove_contents(project, manifest, metadata):
     for entry in project.iterdir():
         if entry == manifest:
             continue
-        if entry.is_symlink() or not entry.is_dir():
+        if os.name == 'nt' and entry.lstat().st_reparse_tag == stat.IO_REPARSE_TAG_MOUNT_POINT:
+            # rmtree refuses a junction as its root. Remove only the junction.
+            if os.path.ismount(entry):
+                raise core.WorkflowError('项目目录中包含挂载的磁盘，请先卸载后重试')
+            entry.rmdir()
+        elif entry.is_symlink() or not entry.is_dir():
             entry.unlink()
         else:
             shutil.rmtree(entry)
