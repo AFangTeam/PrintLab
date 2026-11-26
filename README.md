@@ -10,25 +10,21 @@ PrintLab is the 3D-printing workbench and collaboration workflow AFang (Eric) us
 
 [![PrintLab demonstration by AFang EricFang: ChatGPT meets a 3D printer (Chinese audio)](https://i.ytimg.com/vi/q7G8J5Tz0aQ/hqdefault.jpg)](https://www.youtube.com/watch?v=q7G8J5Tz0aQ)
 
-[Watch on YouTube](https://www.youtube.com/watch?v=q7G8J5Tz0aQ) · [Watch on Bilibili](https://www.bilibili.com/video/BV1r1W26hEHg/)
+[Watch on YouTube](https://www.youtube.com/watch?v=q7G8J5Tz0aQ) · [Watch on Bilibili · 阿方EricFang](https://www.bilibili.com/video/BV1r1W26hEHg/)
 
 By AFang EricFang. Video language: Chinese. For current dispatch capabilities, use this README and the printing guide.
 
 > **Acknowledgments and project roles:** Thank you to [Text-to-CAD](https://github.com/earthtojake/text-to-cad) for CAD modeling and viewing tools, [Bambuddy](https://github.com/maziggy/bambuddy) for printer status, filament and print-record management, and [Bambu Studio](https://github.com/bambulab/BambuStudio) for slicing and official print submission. PrintLab contributes the workbench, collaboration workflow and adapters. These third-party tools are maintained by their respective authors, installed independently from their original projects, and governed by their own licenses. See [third-party sources and licenses](docs/DEPENDENCIES.md).
 
-## History and collection coverage
-
-PrintLab shows print history already captured by Bambuddy and locally maintained inspiration collections. Importing older Bambu Cloud history and MakerWorld account collections is outside the current scope. Preserve existing Handy and cloud needs when choosing a connection mode. Missing archive thumbnails can be recovered from Mac Studio caches or explicitly linked local PNG/3MF files using `history-recover`. [Sync limits](docs/SYNC_TROUBLESHOOTING.md) · [Preview recovery](docs/PREVIEW_RECOVERY.md)
-
-**Language coverage:** The workbench UI is currently in Chinese. The default README, installation and core agent collaboration guides are in English; some detailed references and project templates remain in Chinese. Your agent can explain them in your preferred language. [Language policy](docs/LANGUAGE.md)
-
 ## Get started
+
+On first launch, open **项目图册** (Projects). The gallery is empty and the printer is unconfigured until you add your own.
 
 Give the repository URL and this prompt to Codex or another agent with local terminal and filesystem access.
 
 > Install https://github.com/AFangTeam/PrintLab on this computer. Read README.md, AGENTS.md, and docs/AGENT_START.md. Create a persistent workspace, start the workbench, and run the onboarding verification. Create Sarah, the 3D-printing advisor, and Mike, the workflow designer, as chats sharing this workspace, and record their actual setup status. Create a task-group chat when I choose my first object. Install third-party tools independently from their original projects. Tell me the specific actions needed for device information, login, or system permissions. Report the workspace path, workbench URL, role entry points, verified results, and next steps.
 
-The interaction guide explains what happens in chat, what happens in the web workbench, and how roles exchange project context. The agent guide provides executable setup steps and completion checks. [User interaction guide](docs/GETTING_STARTED.md) · [Agent onboarding guide](docs/AGENT_START.md)
+The repository includes a [PrintLab skill](.agents/skills/printlab/SKILL.md) and a [first-run checklist](docs/FIRST_RUN.md). The interaction guide explains what happens in chat, what happens in the web workbench, and how roles exchange project context. The agent guide provides executable setup steps and completion checks. [User interaction guide](docs/GETTING_STARTED.md) · [Agent onboarding guide](docs/AGENT_START.md)
 
 For a manual installation, prepare Python 3.11+ and Node.js 22+, then run the following commands.
 
@@ -62,6 +58,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start.ps1
 
 The Windows guide covers tool paths, verification, and official Studio handoff. [Windows guide](docs/WINDOWS.md)
 
+**Language coverage:** The workbench UI is currently in Chinese. The default README, installation and core agent collaboration guides are in English; some detailed references and project templates remain in Chinese. Your agent can explain them in your preferred language. [Language policy](docs/LANGUAGE.md)
+
 ## Three collaboration roles
 
 - **Sarah, 3D-printing advisor** helps track equipment, filament, common problems, and parts. Shopping lists span projects. Adding products to a shopping cart uses Codex browser capabilities after the user authorizes it.
@@ -78,7 +76,9 @@ PrintLab provides context through files and commands. Available models and tools
 - Shared parts lists, stock, and purchasing records.
 - Prepared print packages, material mappings, estimates, task-specific confirmations, and execution receipts.
 
-A fresh installation starts with an empty project collection and an unconfigured printer. Data appears as you connect your own equipment and create projects.
+## History and collection coverage
+
+PrintLab shows print history already captured by Bambuddy and locally maintained inspiration collections. Importing older Bambu Cloud history and MakerWorld account collections is outside the current scope. Preserve existing Handy and cloud needs when choosing a connection mode. Missing archive thumbnails can be recovered from Mac Studio caches or explicitly linked local PNG/3MF files using `history-recover`. [Sync limits](docs/SYNC_TROUBLESHOOTING.md) · [Preview recovery](docs/PREVIEW_RECOVERY.md)
 
 ## From idea to physical result
 

@@ -10,23 +10,15 @@ PrintLab 是阿方（Eric）在 E41 视频中使用的 3D 打印工作台与协�
 
 [![当 ChatGPT 接上 3D 打印机——阿方的 PrintLab 演示（中文）](https://i.ytimg.com/vi/q7G8J5Tz0aQ/hqdefault.jpg)](https://www.youtube.com/watch?v=q7G8J5Tz0aQ)
 
-[在 YouTube 观看](https://www.youtube.com/watch?v=q7G8J5Tz0aQ) · [在 B 站观看](https://www.bilibili.com/video/BV1r1W26hEHg/)
+[在 YouTube 观看](https://www.youtube.com/watch?v=q7G8J5Tz0aQ) · [在 B 站观看 · 阿方EricFang](https://www.bilibili.com/video/BV1r1W26hEHg/)
 
 阿方 EricFang：《当 ChatGPT 接上 3D 打印机……》。视频语言：中文。当前发送支持范围以本页和打印指南为准。
 
 > **致谢与项目分工**：感谢 [Text-to-CAD](https://github.com/earthtojake/text-to-cad) 提供 CAD 建模与查看工具、[Bambuddy](https://github.com/maziggy/bambuddy) 提供打印机状态、耗材与打印记录管理，以及 [Bambu Studio](https://github.com/bambulab/BambuStudio) 提供切片与官方发送能力。PrintLab 的原创部分是工作台、协作流程和适配接口；这些第三方工具由各自作者维护，从原项目独立安装并遵循各自许可。完整来源与许可见 [第三方说明](docs/DEPENDENCIES.md)。
 
-## 历史与收藏的同步范围
-
-当前发布版汇总 Bambuddy 已捕获的打印记录，并展示本地维护的灵感收藏。安装前的 Bambu Cloud 历史和 MakerWorld 账号收藏导入已排除在本轮开发范围外。需要保留 Handy、云打印和账号收藏的使用者，应在安装时明确这些需求，按同步排查核对已有功能。
-
-已有档案缺图时，可用 `printlab history-recover` 从 Mac Studio 缓存或明确绑定的本地 PNG / 3MF 恢复。
-
-[模型预览恢复](docs/PREVIEW_RECOVERY.md) · [历史与收藏来源说明](docs/SYNC_TROUBLESHOOTING.md)
-
-工作台界面目前为中文。默认首页、安装和核心 Agent 协作说明采用英文，部分深入指南及项目模板仍为中文；Agent 可以按你的语言偏好解释。详见 [语言范围](docs/LANGUAGE.md)。
-
 ## 从这里开始
+
+首次启动后打开**项目图册**，你会看到空的项目列表，打印机也处于未配置状态。
 
 把仓库链接和下面这段话发给具有本机终端、文件读写能力的 Codex 或其他 Agent。
 
@@ -66,6 +58,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start.ps1
 
 Windows 的工具路径、验证命令和官方 Studio 交接见 [Windows 指南](docs/WINDOWS.md)。
 
+工作台界面目前为中文。默认首页、安装和核心 Agent 协作说明采用英文，部分深入指南及项目模板仍为中文；Agent 可以按你的语言偏好解释。详见 [语言范围](docs/LANGUAGE.md)。
+
 ## 这支队伍怎样配合
 
 - **Sarah · 3D 打印顾问** 了解你的设备、材料和常见故障，帮助核对配件与耗材。购物清单可以跨项目汇总。实际加购物车由你授权后，交给具备浏览器操作能力的 Codex 完成。
@@ -82,7 +76,13 @@ Windows 的工具路径、验证命令和官方 Studio 交接见 [Windows 指南
 - 跨项目配件清单、库存与采购记录。
 - 已准备的打印包、材料映射、时间和用量，以及绑定具体任务的确认与回执。
 
-首次安装会显示空项目和未连接设备。按安装指南连接自己的设备后，页面展示相应数据。
+## 历史与收藏的同步范围
+
+当前发布版汇总 Bambuddy 已捕获的打印记录，并展示本地维护的灵感收藏。安装前的 Bambu Cloud 历史和 MakerWorld 账号收藏导入已排除在本轮开发范围外。需要保留 Handy、云打印和账号收藏的使用者，应在安装时明确这些需求，按同步排查核对已有功能。
+
+已有档案缺图时，可用 `printlab history-recover` 从 Mac Studio 缓存或明确绑定的本地 PNG / 3MF 恢复。
+
+[模型预览恢复](docs/PREVIEW_RECOVERY.md) · [历史与收藏来源说明](docs/SYNC_TROUBLESHOOTING.md)
 
 ## 从需求到实物
 
